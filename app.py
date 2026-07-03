@@ -586,18 +586,43 @@ def get_market_news() -> list:
     all_news = []
     for src in sources:
         try:
-            for item in (yf.Ticker(src).news or [])[:4]:
-                item["_src"] = src
-                all_news.append(item)
+            raw = yf.Ticker(src).news or []
+            for item in list(raw)[:5]:
+                # 相容 dict 格式（舊版）與 NewsArticle 物件格式（新版）
+                if isinstance(item, dict):
+                    title = item.get("title") or item.get("headline") or ""
+                    link  = item.get("link") or item.get("url") or "#"
+                    ts    = item.get("providerPublishTime") or item.get("publishTime") or 0
+                    pub   = item.get("publisher") or item.get("source") or ""
+                else:
+                    title = getattr(item, "title", "") or ""
+                    link  = getattr(item, "link", "") or getattr(item, "url", "") or "#"
+                    ts    = getattr(item, "providerPublishTime", 0) or 0
+                    pub   = getattr(item, "publisher", "") or ""
+                    # 部分版本將內容放在 .content 子物件
+                    if not title and hasattr(item, "content"):
+                        c = item.content
+                        if isinstance(c, dict):
+                            title = c.get("title", "")
+                        else:
+                            title = getattr(c, "title", "") or ""
+                if title:
+                    all_news.append({
+                        "title": str(title),
+                        "link": str(link) if link else "#",
+                        "providerPublishTime": int(ts) if ts else 0,
+                        "publisher": str(pub),
+                        "_src": src,
+                    })
         except Exception:
             pass
     seen, unique = set(), []
     for item in all_news:
-        title = item.get("title","")
+        title = item.get("title", "")
         if title and title not in seen:
             seen.add(title)
             unique.append(item)
-    unique.sort(key=lambda x: x.get("providerPublishTime",0), reverse=True)
+    unique.sort(key=lambda x: x.get("providerPublishTime", 0), reverse=True)
     return unique[:30]
 
 
