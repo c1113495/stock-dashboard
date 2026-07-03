@@ -257,6 +257,7 @@ def get_indices() -> list:
 
 
 @st.cache_data(ttl=300)
+@st.cache_data(ttl=300)
 def load_gsheets_watchlist() -> list:
     try:
         url = st.secrets.get("GSHEET_CSV_URL", "")
