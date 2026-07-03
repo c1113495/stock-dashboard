@@ -953,61 +953,165 @@ def main():
     # ──────────────────────────────────────────────────────
     with tabs[2]:
         sec("📈 買入決策分析")
-        st.caption("輸入你的計劃，系統從估值、技術、基本面綜合給出買/等/避開建議")
+        st.caption("告訴你為什麼推薦或不推薦，以及什麼時候才是更好的進場時機")
         c1,c2,c3,c4 = st.columns(4)
         b_t = c1.text_input("股票代號","NVDA",key="bt").strip().upper()
-        b_p = c2.number_input("想買入的價格($)",0.0,step=0.5,key="bp")
+        b_p = c2.number_input("目標買入價（選填，0=用現價）",0.0,step=0.5,key="bp")
         b_y = c3.selectbox("計劃持有",["<1年","1-2年","3-5年",">5年"],index=2,key="by")
         b_r = c4.selectbox("風險承受度",["低 (-8%)","中 (-15%)","高 (-30%)"],index=1,key="br")
 
         if st.button("🎯 分析買入時機", type="primary", key="b_go"):
             with st.spinner("分析中..."):
-                bi = get_info(b_t); bd = get_price(b_t, "1y")
+                bi = enrich_info(b_t, get_info(b_t)); bd = get_price(b_t, "1y")
             tc = tech_signal(bd); fc = fund_score(bi); pc = peg_model(bi)
             curr = bi.get("currentPrice") or bi.get("regularMarketPrice") or (bd["Close"].iloc[-1] if not bd.empty else 0)
-            score = 0; factors = []
-
-            if b_p and curr:
-                mg = (curr - b_p) / b_p * 100
-                if mg <= -5:  score+=20; factors.append(("✅ 買入價低於現價","green",f"安全邊際 {-mg:.1f}%"))
-                elif mg <= 0: score+=10; factors.append(("🟡 買入價接近現價","yellow","確認市場接受度"))
-                elif mg <= 5: score+=5;  factors.append(("🟡 略高於現價","yellow","建議等拉回"))
-                else:         score-=15; factors.append(("❌ 買入價遠高現價","red","建議重新評估"))
 
             ymap = {"<1年":0.5,"1-2年":1.5,"3-5年":4,">5年":7}
-            yrs = ymap.get(b_y,3)
-            if yrs>=5:   score+=15; factors.append(("✅ 長期持有≥5年","green","複利效果顯著"))
-            elif yrs>=2: score+=8;  factors.append(("🟡 中期持有","yellow","需追蹤基本面"))
-            else:                   factors.append(("🟡 短期持有","yellow","依賴技術面"))
+            yrs  = ymap.get(b_y, 3)
+            is_short = yrs < 2
 
+            score = 0
+            pros  = []
+            cons  = []
+
+            # --- 1. 目標價 vs 現價 ---
+            if b_p and curr and b_p > 0:
+                mg = (curr - b_p) / b_p * 100
+                if mg <= -5:   score += 20; pros.append(f"目標買入價比現價低 {-mg:.1f}%，有安全邊際")
+                elif mg <= 0:  score += 10; pros.append(f"目標買入價接近現價，位置合理")
+                elif mg <= 5:  score +=  3; cons.append(f"目標買入價比現價高 {mg:.1f}%，建議等回調")
+                else:          score -= 15; cons.append(f"目標買入價比現價高 {mg:.1f}%，大幅溢價，建議重設目標")
+
+            # --- 2. 持有期間加分 ---
+            if yrs >= 5:
+                score += 15; pros.append("計劃持有 5 年以上，時間是你的盟友，短期波動影響很小")
+            elif yrs >= 2:
+                score +=  8; pros.append("中期持有（1–5 年），需定期追蹤基本面變化")
+            else:
+                pros.append("短期持有（< 1 年），技術面是關鍵，記得設好停損點")
+
+            # --- 3. 基本面 ---
             fs = fc["score"]
-            if fs>=70:  score+=20; factors.append(("✅ 基本面優良","green",f"{fs}/100"))
-            elif fs>=50: score+=10; factors.append(("🟡 基本面良好","yellow",f"{fs}/100"))
-            else:        score-=10; factors.append(("❌ 基本面弱","red",f"{fs}/100"))
+            if is_short:
+                if fs >= 60:   score += 10; pros.append(f"基本面 {fs}/100 良好（短線交易者參考）")
+                elif fs < 40:  score -=  5; cons.append(f"基本面 {fs}/100 偏弱，短線需更謹慎")
+            else:
+                if fs >= 70:   score += 25; pros.append(f"基本面 {fs}/100 優良，長期持有底氣足")
+                elif fs >= 55: score += 12; pros.append(f"基本面 {fs}/100 中等，需持續觀察")
+                elif fs >= 40: score -=  5; cons.append(f"基本面 {fs}/100 偏弱，長期持有有隱患")
+                else:          score -= 20; cons.append(f"基本面 {fs}/100 差，不建議長期押注")
 
-            ts = tc["score"]
-            if ts>=40:    score+=15; factors.append(("✅ 技術面偏多","green","進場時機好"))
-            elif ts<=-20: score-=15; factors.append(("❌ 技術面偏空","red","可能繼續下探"))
+            # --- 4. 技術面 ---
+            ts  = tc["score"]
+            rsi = tc.get("rsi")
+            if is_short:
+                if ts >= 40:   score += 25; pros.append(f"技術評分 {ts:+d}，短線進場時機良好")
+                elif ts >= 0:  score +=  5; pros.append(f"技術評分 {ts:+d}，技術面中性")
+                elif ts >= -20:score -= 10; cons.append(f"技術評分 {ts:+d}，短線偏弱，可能繼續下探")
+                else:          score -= 20; cons.append(f"技術評分 {ts:+d}，短線明顯偏空，建議等訊號轉多再進")
+            else:
+                if ts >= 40:   score += 15; pros.append(f"技術評分 {ts:+d}，目前趨勢向上")
+                elif ts >= 0:  score +=  5; pros.append(f"技術評分 {ts:+d}，技術面中性，可分批布局")
+                elif ts >= -20:score -=  5; cons.append(f"技術評分 {ts:+d}，短期走弱，但長線可等落底再買")
+                else:          score -= 10; cons.append(f"技術評分 {ts:+d}，趨勢偏空，建議等反彈確認再進")
 
+            # --- 5. RSI ---
+            if rsi:
+                if rsi < 30:   score += 15; pros.append(f"RSI {rsi:.0f} 超賣，歷史上是相對低點，反彈機率高")
+                elif rsi < 42: score +=  8; pros.append(f"RSI {rsi:.0f} 偏低，有反彈空間")
+                elif rsi > 75: score -= 10; cons.append(f"RSI {rsi:.0f} 超買，短線可能回調，不是最佳入場點")
+                elif rsi > 65: score -=  5; cons.append(f"RSI {rsi:.0f} 偏高，追高有風險")
+
+            # --- 6. 估值 PEG ---
             pv = pc.get("peg")
             if pv:
-                if pv<1:  score+=15; factors.append(("✅ PEG<1 低估","green",f"PEG={pv:.2f}"))
-                elif pv>2: score-=10; factors.append(("❌ PEG>2 偏貴","red",f"PEG={pv:.2f}"))
+                if pv < 0.8:   score += 20; pros.append(f"PEG {pv:.2f}，明顯低估，成長被市場忽略")
+                elif pv < 1.3: score += 12; pros.append(f"PEG {pv:.2f}，估值合理")
+                elif pv < 2.0: score +=  0; cons.append(f"PEG {pv:.2f}，估值偏高，成長需維持才撐得住")
+                else:          score -= 15; cons.append(f"PEG {pv:.2f}，估值過高，需要極高成長率才合理")
 
             score = max(-100, min(100, score))
-            if score>=50:   verdict,vc = "✅ 可以買進","#00d896"
-            elif score>=20: verdict,vc = "⏳ 等待更好時機","#ffc842"
-            else:           verdict,vc = "❌ 建議避開","#ff4060"
+
+            # 結論門檻因持有期調整
+            if is_short:
+                if score >= 55:  verdict, vc = "✅ 短線可以進場", "#00d896"
+                elif score >= 20: verdict, vc = "⏳ 等待訊號確認", "#ffc842"
+                else:             verdict, vc = "❌ 短線不建議進", "#ff4060"
+            else:
+                if score >= 40:  verdict, vc = "✅ 建議買進", "#00d896"
+                elif score >= 10: verdict, vc = "⏳ 等待更好時機", "#ffc842"
+                else:             verdict, vc = "❌ 目前不建議", "#ff4060"
 
             st.markdown(
                 f'<div class="card" style="border-color:{vc};text-align:center;padding:20px">'
                 f'<div style="font-size:28px;font-weight:800;color:{vc}">{verdict}</div>'
-                f'<div class="card-sub" style="margin-top:8px">綜合評分 {score:+d}/100</div></div>',
+                f'<div class="card-sub" style="margin-top:8px">綜合評分 {score:+d}/100｜{b_y}持有策略</div></div>',
                 unsafe_allow_html=True)
 
-            sec("評估因素")
-            for lbl, clr, reason in factors:
-                st.markdown(f"{lbl} — {reason}")
+            col_pro, col_con = st.columns(2)
+            with col_pro:
+                sec("✅ 支持買入的理由")
+                if pros:
+                    for p in pros:
+                        st.markdown(
+                            f'<div class="card" style="border-left:3px solid #00d896;padding:8px 12px">'
+                            f'<span class="green">▲</span> {p}</div>', unsafe_allow_html=True)
+                else:
+                    st.markdown("目前沒有明顯支持買入的訊號")
+            with col_con:
+                sec("❌ 現在買需要注意的風險")
+                if cons:
+                    for c_item in cons:
+                        st.markdown(
+                            f'<div class="card" style="border-left:3px solid #ff4060;padding:8px 12px">'
+                            f'<span class="red">▼</span> {c_item}</div>', unsafe_allow_html=True)
+                else:
+                    st.markdown("目前沒有明顯警示，可考慮進場")
+
+            # 什麼時候才比較適合買
+            sec("🎯 什麼時候比較適合買？")
+            tips = []
+            if rsi and rsi > 60:
+                target_rsi = 35 if rsi > 72 else 45
+                tips.append(f"等 RSI 回落到 {target_rsi} 以下再進，勝率更高")
+            if pv and pv > 1.5:
+                tips.append(f"等 PEG 降到 1.3 以下（估值回歸合理）再布局")
+            if ts < 0 and not bd.empty:
+                df_ind = add_indicators(bd)
+                ma20 = df_ind["MA20"].iloc[-1] if not pd.isna(df_ind["MA20"].iloc[-1]) else None
+                ma60 = df_ind["MA60"].iloc[-1] if not pd.isna(df_ind["MA60"].iloc[-1]) else None
+                if ma20 and curr < ma20:
+                    tips.append(f"等股價站回 MA20（約 ${ma20:.2f}）確認短線趨勢轉多")
+                if ma60 and curr < ma60:
+                    tips.append(f"等股價站回 MA60（約 ${ma60:.2f}）確認中期趨勢轉多")
+                tips.append("等 MACD 出現金叉（MACD 線由下往上穿越訊號線）再進場")
+            if not bd.empty:
+                support = bd.tail(20)["Low"].min()
+                if curr and curr > support * 1.06:
+                    tips.append(f"若股價回測支撐區 ${support:.2f} 附近（近20日低點），可考慮分批買入")
+            if not is_short and fs < 50:
+                tips.append("等下季財報確認基本面是否改善，再決定是否投入")
+            if not tips:
+                if score >= 40:
+                    tips.append("目前指標偏正面，可依自己的成本目標分批進場，不必等待")
+                else:
+                    tips.append("目前多項指標偏弱，建議觀望 4–8 週後重新評估")
+            for tip in tips:
+                st.markdown(f"• {tip}")
+
+            # 近期走勢方向
+            sec("📊 近期走勢方向")
+            if not bd.empty and len(bd) >= 20:
+                avg5  = bd["Close"].iloc[-5:].mean()
+                avg20 = bd["Close"].iloc[-20:].mean()
+                trend_dir = "上升" if avg5 > avg20 else "下降"
+                tc2 = "#00d896" if trend_dir == "上升" else "#ff4060"
+                ret5  = tc.get("ret5", 0)
+                ret20 = tc.get("ret20", 0)
+                st.markdown(
+                    f"短期均線 vs 中期均線：趨勢 <span style='color:{tc2}'><b>{trend_dir}中</b></span>，"
+                    f"5日漲跌 **{ret5:+.1f}%**，20日漲跌 **{ret20:+.1f}%**",
+                    unsafe_allow_html=True)
 
             if not bd.empty:
                 st.plotly_chart(price_chart(bd, b_t), use_container_width=True)
