@@ -632,14 +632,16 @@ def get_market_news() -> list:
     import xml.etree.ElementTree as ET
     from email.utils import parsedate_to_datetime
 
-    sources = ["^GSPC","^TWII","^IXIC","NVDA","AAPL","META","TSLA","MSFT","2330.TW","AMD"]
+    US_SRC = ["^GSPC","^IXIC","NVDA","AAPL","META","TSLA","MSFT","AMD","GOOGL","AMZN"]
+    TW_SRC = ["^TWII","2330.TW","2317.TW","2454.TW","2308.TW","2412.TW",
+              "2303.TW","3711.TW","0050.TW","2882.TW","2881.TW","3008.TW"]
     all_news = []
 
-    # --- 方法 A：yfinance .news ---
-    for src in sources:
+    # --- 方法 A：yfinance .news（美股 + 台股）---
+    for src in US_SRC + TW_SRC:
         try:
             raw = yf.Ticker(src).news or []
-            for item in list(raw)[:5]:
+            for item in list(raw)[:4]:
                 parsed = _parse_news_item(item)
                 if parsed:
                     parsed["_src"] = src
@@ -647,43 +649,88 @@ def get_market_news() -> list:
         except Exception:
             pass
 
-    # --- 方法 B：Yahoo Finance RSS（備援，當 A 拿不到資料時）---
-    if len(all_news) < 5:
-        rss_map = [
-            ("%5EGSPC","^GSPC"), ("NVDA","NVDA"), ("AAPL","AAPL"),
-            ("TSLA","TSLA"),     ("MSFT","MSFT"), ("META","META"),
-            ("AMD","AMD"),       ("2330.TW","2330.TW"),
-        ]
-        for sym, src in rss_map:
-            try:
-                url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={sym}&region=US&lang=en-US"
-                r = requests.get(url, timeout=7, headers={"User-Agent":"Mozilla/5.0"})
-                if r.status_code != 200:
-                    continue
-                root = ET.fromstring(r.content)
-                for el in root.findall(".//item")[:4]:
-                    title = el.findtext("title") or ""
-                    link  = el.findtext("link") or "#"
-                    pub   = el.findtext("source") or ""
-                    ts = 0
-                    try:
-                        ts = int(parsedate_to_datetime(el.findtext("pubDate") or "").timestamp())
-                    except Exception:
-                        pass
-                    if title:
-                        all_news.append({"title":title,"link":link,
-                                         "providerPublishTime":ts,"publisher":pub,"_src":src})
-            except Exception:
-                pass
+    def _fetch_rss(url: str, src: str, limit: int = 4):
+        try:
+            r = requests.get(url, timeout=7, headers={"User-Agent": "Mozilla/5.0"})
+            if r.status_code != 200:
+                return
+            root = ET.fromstring(r.content)
+            for el in root.findall(".//item")[:limit]:
+                title = el.findtext("title") or ""
+                link  = el.findtext("link") or "#"
+                pub   = el.findtext("source") or ""
+                ts = 0
+                try:
+                    ts = int(parsedate_to_datetime(el.findtext("pubDate") or "").timestamp())
+                except Exception:
+                    pass
+                if title:
+                    all_news.append({"title": title, "link": link,
+                                     "providerPublishTime": ts, "publisher": pub, "_src": src})
+        except Exception:
+            pass
+
+    # --- 方法 B：Yahoo Finance RSS（美股）---
+    us_count = sum(1 for n in all_news if n["_src"] in set(US_SRC))
+    if us_count < 5:
+        for sym, src in [("%5EGSPC","^GSPC"),("NVDA","NVDA"),("AAPL","AAPL"),
+                          ("TSLA","TSLA"),("MSFT","MSFT"),("META","META"),("AMD","AMD")]:
+            _fetch_rss(
+                f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={sym}&region=US&lang=en-US",
+                src)
+
+    # --- 方法 C：Yahoo Finance RSS（台股，繁中）---
+    tw_count = sum(1 for n in all_news if n["_src"] in set(TW_SRC))
+    if tw_count < 5:
+        for sym, src in [("2330.TW","2330.TW"),("2317.TW","2317.TW"),
+                          ("2454.TW","2454.TW"),("%5ETWII","^TWII"),
+                          ("2308.TW","2308.TW"),("2303.TW","2303.TW"),
+                          ("0050.TW","0050.TW"),("2882.TW","2882.TW"),
+                          ("3008.TW","3008.TW"),("3711.TW","3711.TW")]:
+            _fetch_rss(
+                f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={sym}&region=TW&lang=zh-Hant-TW",
+                src)
 
     seen, unique = set(), []
     for item in all_news:
-        title = item.get("title","")
+        title = item.get("title", "")
         if title and title not in seen:
             seen.add(title)
             unique.append(item)
     unique.sort(key=lambda x: x.get("providerPublishTime", 0), reverse=True)
-    return unique[:30]
+    return unique[:40]
+
+
+@st.cache_data(ttl=3600)
+def gemini_news_summary(headlines_text: str) -> str:
+    try:
+        import google.generativeai as genai
+        api_key = st.secrets.get("GEMINI_API_KEY", "")
+        if not api_key:
+            return ""
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        prompt = f"""以下是今日財經新聞標題（中英文混合），請用繁體中文整理：
+
+**新聞標題：**
+{headlines_text}
+
+請輸出三個區塊，格式如下：
+
+📌 **今日重點事件**
+（列出 3-5 個最重要的市場動態，每點一行，30字以內，用「•」開頭）
+
+📊 **整體市場情緒**
+（一句話：偏多 / 偏空 / 震盪，並說明主要原因）
+
+⚠️ **值得注意**
+（1-2個投資人需特別關注的風險或機會，每點一行）
+
+要求：繁體中文、簡潔有力、適合股票新手閱讀"""
+        resp = model.generate_content(prompt)
+        return resp.text or ""
+    except Exception:
+        return ""
 
 
 # ════════════════════════════════════════════════════════════
@@ -1499,8 +1546,10 @@ def main():
         with st.spinner("載入新聞..."):
             all_news = get_market_news()
 
-        tw_sources = {"^TWII","2330.TW"}
-        us_sources = {"^GSPC","^IXIC","NVDA","AAPL","META","TSLA","MSFT","AMD"}
+        tw_sources = {"^TWII","2330.TW","2317.TW","2454.TW","2308.TW",
+                      "2412.TW","2303.TW","3711.TW","0050.TW","2882.TW",
+                      "2881.TW","2886.TW","1301.TW","2002.TW","3008.TW"}
+        us_sources = {"^GSPC","^IXIC","NVDA","AAPL","META","TSLA","MSFT","AMD","GOOGL","AMZN"}
 
         if news_lang == "台股相關":
             filtered = [n for n in all_news if n.get("_src") in tw_sources]
@@ -1510,13 +1559,36 @@ def main():
             filtered = all_news
 
         st.caption(f"共取得 {len(all_news)} 則新聞，篩選後 {len(filtered)} 則")
+
+        # AI 中文摘要（需要 GEMINI_API_KEY）
+        has_gemini = bool(st.secrets.get("GEMINI_API_KEY", ""))
+        if has_gemini and filtered:
+            sec("🤖 AI 今日市場摘要")
+            headlines_text = "\n".join(
+                f"[{'台股' if n.get('_src','') in tw_sources else '美股'}] {n['title']}"
+                for n in filtered[:25]
+            )
+            with st.spinner("AI 分析中..."):
+                summary = gemini_news_summary(headlines_text)
+            if summary:
+                st.markdown(
+                    f'<div class="card" style="border-color:#9b8cff;padding:16px 20px;line-height:1.8">'
+                    f'{summary.replace(chr(10), "<br>")}</div>',
+                    unsafe_allow_html=True)
+            st.markdown("---")
+
         if not filtered:
             st.info("暫時沒有新聞，請稍後再試")
         else:
             src_label = {
-                "^GSPC":"S&P500","^TWII":"台灣加權","^IXIC":"NASDAQ",
-                "NVDA":"NVDA","AAPL":"AAPL","META":"META",
-                "TSLA":"TSLA","MSFT":"MSFT","2330.TW":"台積電","AMD":"AMD",
+                "^GSPC":"S&P500","^IXIC":"NASDAQ","^TWII":"台灣加權",
+                "NVDA":"NVDA","AAPL":"AAPL","META":"META","TSLA":"TSLA",
+                "MSFT":"MSFT","AMD":"AMD","GOOGL":"Google","AMZN":"Amazon",
+                "2330.TW":"台積電","2317.TW":"鴻海","2454.TW":"聯發科",
+                "2308.TW":"台達電","2412.TW":"中華電","2303.TW":"聯電",
+                "3711.TW":"日月光","0050.TW":"元大台灣50","2882.TW":"國泰金",
+                "2881.TW":"富邦金","2886.TW":"兆豐金","1301.TW":"台塑",
+                "2002.TW":"中鋼","3008.TW":"大立光",
             }
             for item in filtered:
                 title = item.get("title","")
