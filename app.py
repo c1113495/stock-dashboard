@@ -728,7 +728,7 @@ def gemini_news_summary(headlines_text: str) -> str:
 要求：繁體中文、簡潔有力、適合股票新手閱讀"""
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 600},
+        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 1500},
     }
     # 先查詢這個 Key 有哪些可用模型
     try:
@@ -1606,14 +1606,19 @@ def main():
                 headlines_text = "\n".join(
                     f"[{'台股' if n.get('_src','') in tw_sources else '美股'}] {n['title']}"
                     for n in filtered[:25]
+                    if n.get("title","").strip()
                 )
-                with st.spinner("AI 分析中..."):
-                    summary = gemini_news_summary(headlines_text)
-                if summary:
-                    st.markdown(
-                        f'<div class="card" style="border-color:#9b8cff;padding:16px 20px;line-height:1.8">'
-                        f'{summary.replace(chr(10), "<br>")}</div>',
-                        unsafe_allow_html=True)
+                st.caption(f"傳給 AI 的新聞標題：{len(headlines_text.splitlines())} 則")
+                if not headlines_text.strip():
+                    st.warning("新聞標題是空的，無法生成摘要")
+                else:
+                    with st.spinner("AI 分析中..."):
+                        summary = gemini_news_summary(headlines_text)
+                    if summary:
+                        st.markdown(
+                            f'<div class="card" style="border-color:#9b8cff;padding:16px 20px;line-height:1.8">'
+                            f'{summary.replace(chr(10), "<br>")}</div>',
+                            unsafe_allow_html=True)
             st.markdown("---")
 
         if not filtered:
