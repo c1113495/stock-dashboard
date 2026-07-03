@@ -704,33 +704,44 @@ def get_market_news() -> list:
 @st.cache_data(ttl=3600)
 def gemini_news_summary(headlines_text: str) -> str:
     try:
-        import google.generativeai as genai
-        api_key = st.secrets.get("GEMINI_API_KEY", "")
-        if not api_key:
-            return ""
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        prompt = f"""以下是今日財經新聞標題（中英文混合），請用繁體中文整理：
-
-**新聞標題：**
-{headlines_text}
-
-請輸出三個區塊，格式如下：
-
-📌 **今日重點事件**
-（列出 3-5 個最重要的市場動態，每點一行，30字以內，用「•」開頭）
-
-📊 **整體市場情緒**
-（一句話：偏多 / 偏空 / 震盪，並說明主要原因）
-
-⚠️ **值得注意**
-（1-2個投資人需特別關注的風險或機會，每點一行）
-
-要求：繁體中文、簡潔有力、適合股票新手閱讀"""
-        resp = model.generate_content(prompt)
-        return resp.text or ""
+        api_key = st.secrets["GEMINI_API_KEY"]
     except Exception:
         return ""
+    if not api_key:
+        return ""
+    prompt = f"""以下是今日財經新聞標題（中英文混合），請用繁體中文整理：
+
+新聞標題：
+{headlines_text}
+
+請輸出三個區塊：
+
+📌 今日重點事件
+（列出 3-5 個最重要的市場動態，每點一行，30字以內，用「•」開頭）
+
+📊 整體市場情緒
+（一句話：偏多 / 偏空 / 震盪，並說明主要原因）
+
+⚠️ 值得注意
+（1-2個投資人需特別關注的風險或機會，每點一行，用「•」開頭）
+
+要求：繁體中文、簡潔有力、適合股票新手閱讀"""
+    try:
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            f"gemini-1.5-flash:generateContent?key={api_key}"
+        )
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.3, "maxOutputTokens": 600},
+        }
+        r = requests.post(url, json=payload, timeout=20)
+        if r.status_code == 200:
+            data = r.json()
+            return data["candidates"][0]["content"]["parts"][0]["text"]
+        return f"[API 錯誤 {r.status_code}]"
+    except Exception as e:
+        return f"[連線失敗：{str(e)[:60]}]"
 
 
 # ════════════════════════════════════════════════════════════
@@ -1561,20 +1572,27 @@ def main():
         st.caption(f"共取得 {len(all_news)} 則新聞，篩選後 {len(filtered)} 則")
 
         # AI 中文摘要（需要 GEMINI_API_KEY）
-        has_gemini = bool(st.secrets.get("GEMINI_API_KEY", ""))
-        if has_gemini and filtered:
+        try:
+            has_gemini = bool(st.secrets["GEMINI_API_KEY"])
+        except Exception:
+            has_gemini = False
+
+        if filtered:
             sec("🤖 AI 今日市場摘要")
-            headlines_text = "\n".join(
-                f"[{'台股' if n.get('_src','') in tw_sources else '美股'}] {n['title']}"
-                for n in filtered[:25]
-            )
-            with st.spinner("AI 分析中..."):
-                summary = gemini_news_summary(headlines_text)
-            if summary:
-                st.markdown(
-                    f'<div class="card" style="border-color:#9b8cff;padding:16px 20px;line-height:1.8">'
-                    f'{summary.replace(chr(10), "<br>")}</div>',
-                    unsafe_allow_html=True)
+            if not has_gemini:
+                st.caption("尚未設定 GEMINI_API_KEY，請到 Streamlit Cloud → Settings → Secrets 新增")
+            else:
+                headlines_text = "\n".join(
+                    f"[{'台股' if n.get('_src','') in tw_sources else '美股'}] {n['title']}"
+                    for n in filtered[:25]
+                )
+                with st.spinner("AI 分析中..."):
+                    summary = gemini_news_summary(headlines_text)
+                if summary:
+                    st.markdown(
+                        f'<div class="card" style="border-color:#9b8cff;padding:16px 20px;line-height:1.8">'
+                        f'{summary.replace(chr(10), "<br>")}</div>',
+                        unsafe_allow_html=True)
             st.markdown("---")
 
         if not filtered:
