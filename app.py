@@ -10,6 +10,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
+import requests
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -86,6 +87,150 @@ def get_financials(ticker: str) -> dict:
         }
     except Exception:
         return {}
+
+
+# ── Method A：從 yfinance 季報表自己算 ──────────────────────
+
+@st.cache_data(ttl=3600)
+def calc_from_statements(ticker: str) -> dict:
+    result = {}
+    try:
+        t      = yf.Ticker(ticker)
+        income = t.quarterly_income_stmt
+        bal    = t.quarterly_balance_sheet
+
+        if income is None or income.empty:
+            return result
+
+        def find(df, keys):
+            for k in keys:
+                if k in df.index:
+                    return df.loc[k]
+            return None
+
+        rev = find(income, ["Total Revenue", "Operating Revenue"])
+        gp  = find(income, ["Gross Profit"])
+        ni  = find(income, ["Net Income", "Net Income Common Stockholders",
+                             "Net Income Including Noncontrolling Interests"])
+
+        if rev is not None:
+            r0 = float(rev.iloc[0]) if not pd.isna(rev.iloc[0]) else None
+            if r0 and r0 != 0:
+                if gp is not None:
+                    g0 = float(gp.iloc[0]) if not pd.isna(gp.iloc[0]) else None
+                    if g0 is not None:
+                        result["grossMargins"] = g0 / r0
+                if ni is not None:
+                    n0 = float(ni.iloc[0]) if not pd.isna(ni.iloc[0]) else None
+                    if n0 is not None:
+                        result["profitMargins"] = n0 / r0
+            # Revenue YoY（同季比）
+            if len(rev) >= 5:
+                r4 = float(rev.iloc[4]) if not pd.isna(rev.iloc[4]) else None
+                if r4 and r4 != 0 and r0:
+                    result["revenueGrowth"] = (r0 - r4) / abs(r4)
+
+        # ROE
+        if bal is not None and not bal.empty and ni is not None and len(ni) >= 4:
+            eq = find(bal, ["Stockholders Equity", "Total Stockholder Equity",
+                            "Common Stock Equity", "Total Equity Gross Minority Interest"])
+            if eq is not None:
+                equity = float(eq.iloc[0]) if not pd.isna(eq.iloc[0]) else None
+                ni_vals = [float(v) for v in ni.iloc[:4] if not pd.isna(v)]
+                if equity and equity != 0 and ni_vals:
+                    result["returnOnEquity"] = sum(ni_vals) / equity
+
+            # 負債比
+            debt = find(bal, ["Total Debt", "Long Term Debt And Capital Lease Obligation"])
+            eq2  = find(bal, ["Stockholders Equity", "Total Stockholder Equity", "Common Stock Equity"])
+            if debt is not None and eq2 is not None:
+                d0 = float(debt.iloc[0]) if not pd.isna(debt.iloc[0]) else None
+                e0 = float(eq2.iloc[0]) if not pd.isna(eq2.iloc[0]) else None
+                if d0 is not None and e0 and e0 != 0:
+                    result["debtToEquity"] = (d0 / e0) * 100
+
+    except Exception:
+        pass
+    return result
+
+
+# ── Method B：FinMind API 補台股財報 ─────────────────────────
+
+@st.cache_data(ttl=3600 * 6)
+def get_finmind(stock_id: str) -> dict:
+    result = {}
+    if not (stock_id.endswith(".TW") or stock_id.endswith(".TWO")):
+        return result
+
+    sid = stock_id.replace(".TW", "").replace(".TWO", "")
+    try:
+        token = st.secrets.get("FINMIND_TOKEN", "")
+    except Exception:
+        token = ""
+
+    base = "https://api.finmindtrade.com/api/v4/data"
+
+    try:
+        params = {"dataset": "TaiwanStockFinancialStatements",
+                  "data_id": sid, "start_date": "2023-01-01"}
+        if token:
+            params["token"] = token
+        r = requests.get(base, params=params, timeout=8)
+        items = r.json().get("data", [])
+
+        if items:
+            df = pd.DataFrame(items)
+            df["date"] = pd.to_datetime(df["date"])
+            df = df.sort_values("date", ascending=False)
+
+            def latest(type_name):
+                sub = df[df["type"] == type_name]
+                return float(sub["value"].iloc[0]) if not sub.empty else None
+
+            rev = latest("Revenue");      gp  = latest("GrossProfit")
+            ni  = latest("NetIncome");    eps = latest("EPS")
+            roe = latest("ROE")
+
+            if rev and gp and rev != 0:
+                result["grossMargins"]  = gp / rev
+            if rev and ni and rev != 0:
+                result["profitMargins"] = ni / rev
+            if eps:
+                result["trailingEps"]   = eps
+            if roe:
+                result["returnOnEquity"] = roe / 100  # FinMind 回傳 % 數字
+
+            # 營收 YoY
+            rev_df = df[df["type"] == "Revenue"].head(6)
+            if len(rev_df) >= 5:
+                r0 = float(rev_df.iloc[0]["value"])
+                r4 = float(rev_df.iloc[4]["value"])
+                if r4 and r4 != 0:
+                    result["revenueGrowth"] = (r0 - r4) / abs(r4)
+
+    except Exception:
+        pass
+    return result
+
+
+# ── 合併所有來源 ──────────────────────────────────────────────
+
+def enrich_info(ticker: str, base_info: dict) -> dict:
+    """用 A + B 填補 yfinance info 的空白欄位"""
+    info = dict(base_info)
+
+    # Method A（所有股票都跑）
+    for key, val in calc_from_statements(ticker).items():
+        if info.get(key) is None and val is not None:
+            info[key] = val
+
+    # Method B（只對台股）
+    if ticker.endswith(".TW") or ticker.endswith(".TWO"):
+        for key, val in get_finmind(ticker).items():
+            if info.get(key) is None and val is not None:
+                info[key] = val
+
+    return info
 
 
 @st.cache_data(ttl=1200)
@@ -343,6 +488,99 @@ def composite(tech: dict, fund: dict, peg: dict) -> tuple:
 
 
 # ════════════════════════════════════════════════════════════
+#  PLAIN LANGUAGE ANALYSIS  (新手白話文)
+# ════════════════════════════════════════════════════════════
+
+def plain_analysis(ticker: str, info: dict, tech: dict, fund: dict, peg: dict) -> dict:
+    name     = info.get("shortName", ticker)
+    sector   = info.get("sector", "") or ""
+    industry = info.get("industry", "") or ""
+    mc       = info.get("marketCap", 0) or 0
+    mc_str   = f"${mc/1e9:.0f}B 的大型公司" if mc > 10e9 else f"${mc/1e9:.1f}B 的中型公司" if mc > 1e9 else "小型公司"
+
+    roe   = (info.get("returnOnEquity") or 0) * 100
+    gm    = (info.get("grossMargins") or 0) * 100
+    rev_g = (info.get("revenueGrowth") or 0) * 100
+    de    = info.get("debtToEquity") or 0
+    beta  = info.get("beta") or 1
+    pv    = peg.get("peg")
+    ts    = tech["score"]
+    fs    = fund["score"]
+
+    # ── 公司一句話介紹 ──────────────────────────────────────
+    sector_zh = {
+        "Technology":"科技","Healthcare":"醫療","Financial Services":"金融",
+        "Consumer Cyclical":"消費","Industrials":"工業","Energy":"能源",
+        "Communication Services":"通訊","Utilities":"公用事業",
+        "Basic Materials":"原物料","Real Estate":"房地產",
+    }.get(sector, sector)
+    intro = f"{name} 是一家 {mc_str}，屬於 {sector_zh or sector} 產業的 {industry or '公司'}。"
+
+    # ── 看漲角度 ────────────────────────────────────────────
+    bull = []
+    if rev_g > 20:   bull.append(f"📈 營收年增 {rev_g:.0f}%，業績火熱，代表越來越多人買它的產品")
+    elif rev_g > 5:  bull.append(f"📈 營收年增 {rev_g:.0f}%，穩定成長中")
+    if roe > 20:     bull.append(f"💪 ROE {roe:.0f}%：公司很會用錢賺錢，效率高")
+    elif roe > 15:   bull.append(f"💪 ROE {roe:.0f}%：獲利能力不錯")
+    if gm > 50:      bull.append(f"🏰 毛利率 {gm:.0f}%：護城河很深，別人很難搶走它的生意")
+    elif gm > 30:    bull.append(f"✅ 毛利率 {gm:.0f}%：有一定的定價能力")
+    if ts >= 30:     bull.append("📊 技術面向上，短期股價走勢偏強，市場信心足")
+    if pv and pv < 1: bull.append(f"💰 PEG {pv:.1f}，比成長速度來說股價還算便宜")
+    if de < 30:       bull.append(f"🛡️ 負債比 {de:.0f}%，財務很穩，不容易因借太多錢而出問題")
+    if not bull:      bull.append("目前正面訊號不明顯，建議觀察下一季財報")
+
+    # ── 看跌角度 ────────────────────────────────────────────
+    bear = []
+    if rev_g < 0:    bear.append(f"⚠️ 營收年增 {rev_g:.0f}%，業績在縮水，要注意")
+    if roe < 8:      bear.append(f"😟 ROE {roe:.0f}%：公司賺錢效率偏低，可能競爭壓力大")
+    if gm < 20:      bear.append(f"😟 毛利率 {gm:.0f}%：獲利空間窄，漲成本或降價都很傷")
+    if ts <= -20:    bear.append("📉 技術面走弱，短期可能繼續下跌，進場要謹慎")
+    if pv and pv > 2.5: bear.append(f"💸 PEG {pv:.1f}，股價已反映很多樂觀預期，如果業績不如預期會跌很多")
+    if de > 100:     bear.append(f"⚠️ 負債比 {de:.0f}%，借了很多錢，利率高的時候壓力大")
+    if beta > 1.8:   bear.append(f"🎢 Beta {beta:.1f}，這支股票很容易大漲大跌，小心情緒影響判斷")
+    if not bear:     bear.append("目前沒有明顯負面警示，但市場永遠有黑天鵝，不能 all-in")
+
+    # ── 中立客觀 ────────────────────────────────────────────
+    neutral = [
+        f"綜合評分：基本面 {fs}/100 | 技術面 {ts:+d}分",
+        f"估值評級：{peg.get('verdict', '資料不足')}",
+    ]
+    fv = peg.get("fair_value")
+    curr = info.get("currentPrice") or info.get("regularMarketPrice")
+    if fv and curr:
+        upside = (fv - curr) / curr * 100
+        neutral.append(f"根據 PEG 模型，合理估值約 ${fv:.2f}，{'比現價還有 ' + f'{upside:.0f}% 上行空間' if upside > 0 else '現價已高於合理估值 ' + f'{-upside:.0f}%'}")
+    neutral.append("⚠️ 任何分析都有侷限，建議分批買入、控制單股不超過總資金的 10%")
+
+    return {"intro": intro, "bull": bull, "bear": bear, "neutral": neutral}
+
+
+# ════════════════════════════════════════════════════════════
+#  MARKET NEWS FEED
+# ════════════════════════════════════════════════════════════
+
+@st.cache_data(ttl=1800)
+def get_market_news() -> list:
+    sources = ["^GSPC","^TWII","^IXIC","NVDA","AAPL","META","TSLA","MSFT","2330.TW","AMD"]
+    all_news = []
+    for src in sources:
+        try:
+            for item in (yf.Ticker(src).news or [])[:4]:
+                item["_src"] = src
+                all_news.append(item)
+        except Exception:
+            pass
+    seen, unique = set(), []
+    for item in all_news:
+        title = item.get("title","")
+        if title and title not in seen:
+            seen.add(title)
+            unique.append(item)
+    unique.sort(key=lambda x: x.get("providerPublishTime",0), reverse=True)
+    return unique[:30]
+
+
+# ════════════════════════════════════════════════════════════
 #  CHARTS
 # ════════════════════════════════════════════════════════════
 
@@ -459,12 +697,25 @@ def main():
                 f'<div style="color:{c};font-weight:700">{"▲" if idx["pct"]>=0 else "▼"} {idx["pct"]:+.2f}%</div>'
                 f'</div>', unsafe_allow_html=True)
 
+    # ── 風控紀律提醒 ──────────────────────────────────────────
+    st.markdown("""
+<div style="background:#1a0a00;border:1px solid #ff8c42;border-radius:12px;padding:12px 18px;margin:12px 0">
+<div style="color:#ff8c42;font-weight:700;font-size:13px;margin-bottom:6px">⚡ 風控紀律提醒（每次買股前看一下）</div>
+<div style="color:#c8a87a;font-size:12px;line-height:1.8">
+💼 單一股票不超過總資金 <b>10%</b>&nbsp;&nbsp;
+📉 虧損達 <b>-8%</b> 一定停損，不凹&nbsp;&nbsp;
+📈 獲利超過 <b>+30%</b> 先賣一半落袋&nbsp;&nbsp;
+🧘 大跌時不恐慌賣出，先看新聞確認原因
+</div>
+</div>
+""", unsafe_allow_html=True)
+
     st.markdown("---")
 
     tabs = st.tabs([
         "🔍 個股研究","📋 自選股掃描","📈 買入決策","📉 賣出決策",
         "⚖️ 股票比較","🚨 風險掃雷","💼 投資組合","📄 財報解讀",
-        "⏳ 長期分析","🌐 主題清單",
+        "⏳ 長期分析","🌐 主題清單","📰 今日新聞",
     ])
 
     # ──────────────────────────────────────────────────────
@@ -478,7 +729,7 @@ def main():
 
         if ticker:
             with st.spinner("載入中..."):
-                info = get_info(ticker)
+                info = enrich_info(ticker, get_info(ticker))
                 df   = get_price(ticker, period)
                 news = get_news(ticker)
 
@@ -505,6 +756,30 @@ def main():
                 col.markdown(card(lbl, val, sub, clr), unsafe_allow_html=True)
 
             st.plotly_chart(price_chart(df, ticker), use_container_width=True)
+
+            # ── 新手白話文三角度分析 ──────────────────────────
+            pa = plain_analysis(ticker, info, tech, fund, peg)
+            with st.expander("🧑‍🎓 新手看這裡：白話文解析（看漲 / 看跌 / 中立）", expanded=True):
+                st.markdown(f"**{pa['intro']}**")
+                col_b, col_s, col_n = st.columns(3)
+                with col_b:
+                    st.markdown('<div style="background:#002a1a;border-radius:10px;padding:12px;min-height:160px">'
+                                '<div style="color:#00d896;font-weight:700;margin-bottom:8px">📈 看漲角度</div>', unsafe_allow_html=True)
+                    for pt in pa["bull"]:
+                        st.markdown(f'<div style="color:#c0f0e0;font-size:13px;margin-bottom:6px">{pt}</div>', unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                with col_s:
+                    st.markdown('<div style="background:#2a0010;border-radius:10px;padding:12px;min-height:160px">'
+                                '<div style="color:#ff4060;font-weight:700;margin-bottom:8px">📉 看跌角度</div>', unsafe_allow_html=True)
+                    for pt in pa["bear"]:
+                        st.markdown(f'<div style="color:#f0c0c0;font-size:13px;margin-bottom:6px">{pt}</div>', unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                with col_n:
+                    st.markdown('<div style="background:#1a1a2a;border-radius:10px;padding:12px;min-height:160px">'
+                                '<div style="color:#9b8cff;font-weight:700;margin-bottom:8px">⚖️ 中立客觀</div>', unsafe_allow_html=True)
+                    for pt in pa["neutral"]:
+                        st.markdown(f'<div style="color:#c0c0e0;font-size:13px;margin-bottom:6px">{pt}</div>', unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
 
             t1,t2,t3,t4,t5 = st.tabs(["技術","基本面","估值","新聞","公司"])
 
@@ -623,7 +898,7 @@ def main():
             prog = st.progress(0, "掃描中...")
             for i, t in enumerate(tickers):
                 try:
-                    inf = get_info(t); dfx = get_price(t, "3mo")
+                    inf = enrich_info(t, get_info(t)); dfx = get_price(t, "3mo")
                     if dfx.empty: continue
                     tc = tech_signal(dfx); fc = fund_score(inf); pc = peg_model(inf)
                     sg, _ = composite(tc, fc, pc)
@@ -997,6 +1272,60 @@ def main():
                     return ""
                 st.dataframe(thdf.style.map(cmap2,subset=["建議"]),
                              use_container_width=True, height=400)
+
+    # ──────────────────────────────────────────────────────
+    # TAB 11: 今日財經新聞
+    # ──────────────────────────────────────────────────────
+    with tabs[10]:
+        sec("📰 今日財經新聞")
+        st.caption("自動彙整美股大盤、台股、熱門股最新動態，每 30 分鐘更新一次")
+
+        col_filter, col_refresh = st.columns([4,1])
+        news_lang = col_filter.radio("篩選",["全部","美股相關","台股相關"],
+                                     horizontal=True, key="news_filter")
+        if col_refresh.button("🔄 立即更新", key="news_refresh"):
+            st.cache_data.clear()
+
+        with st.spinner("載入新聞..."):
+            all_news = get_market_news()
+
+        tw_sources = {"^TWII","2330.TW"}
+        us_sources = {"^GSPC","^IXIC","NVDA","AAPL","META","TSLA","MSFT","AMD"}
+
+        if news_lang == "台股相關":
+            filtered = [n for n in all_news if n.get("_src") in tw_sources]
+        elif news_lang == "美股相關":
+            filtered = [n for n in all_news if n.get("_src") in us_sources]
+        else:
+            filtered = all_news
+
+        if not filtered:
+            st.info("暫時沒有新聞，請稍後再試")
+        else:
+            src_label = {
+                "^GSPC":"S&P500","^TWII":"台灣加權","^IXIC":"NASDAQ",
+                "NVDA":"NVDA","AAPL":"AAPL","META":"META",
+                "TSLA":"TSLA","MSFT":"MSFT","2330.TW":"台積電","AMD":"AMD",
+            }
+            for item in filtered:
+                title = item.get("title","")
+                link  = item.get("link","#")
+                pub   = item.get("publisher","")
+                ts    = item.get("providerPublishTime",0)
+                src   = item.get("_src","")
+                dt    = datetime.fromtimestamp(ts).strftime("%m/%d %H:%M") if ts else ""
+                tag   = src_label.get(src, src)
+                tag_color = "#9b8cff" if src in tw_sources else "#00d896"
+
+                st.markdown(
+                    f'<div class="news-item">'
+                    f'<div><a href="{link}" target="_blank">{title}</a></div>'
+                    f'<div class="news-meta">'
+                    f'<span style="background:#1a2035;color:{tag_color};padding:1px 7px;'
+                    f'border-radius:4px;font-size:11px;margin-right:6px">{tag}</span>'
+                    f'{pub} · {dt}</div></div>',
+                    unsafe_allow_html=True,
+                )
 
     st.markdown("---")
     st.caption("⚠️ 本工具僅供研究與教育目的，不構成任何投資建議。投資有風險，請審慎評估。")
