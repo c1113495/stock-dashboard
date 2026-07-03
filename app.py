@@ -1122,6 +1122,41 @@ def main():
                 clr_map = {"green":"#00d896","yellow":"#ffc842","red":"#ff4060"}
                 icon_map = {"green":"🟢","yellow":"🟡","red":"🔴"}
 
+                # 白話解釋對照表
+                PLAIN = {
+                    "ROE":            "= 公司幫股東賺錢的效率，越高代表越會賺錢",
+                    "毛利率":          "= 賣出產品扣掉直接成本後剩多少，越高競爭力越強",
+                    "營收年增":        "= 跟去年同期比，業績成長了多少",
+                    "淨利率":          "= 最終真正留下來的獲利比例，越高越好",
+                    "負債比":          "= 公司借了多少錢，越低財務越穩健",
+                    "流動比":          "= 短期還得起錢嗎，超過 2 代表很安全",
+                    "MA5 站上 MA20":   "→ 短期動能回升，最近股價走強",
+                    "MA5 跌破 MA20":   "→ 短期走弱，動能轉差",
+                    "MA20 站上 MA60":  "→ 中期趨勢向上確認",
+                    "MA20 跌破 MA60":  "→ 中期趨勢轉弱，後市偏空",
+                    "MACD 金叉":       "→ 買進技術訊號，多方力量增強",
+                    "MACD 死叉":       "→ 賣出技術訊號，空方力量增強",
+                    "RSI 超買":        "→ 股價短期漲太多，小心回調",
+                    "RSI 超賣":        "→ 股價跌太深，可能即將反彈",
+                    "RSI 健康":        "→ 漲跌幅度正常，不極端",
+                    "觸及布林下軌":    "→ 股價跌到近期低點，可能有支撐",
+                    "觸及布林上軌":    "→ 股價漲到近期高點附近，上方有壓力",
+                    "布林中軌":        "→ 股價在近期平均位置附近",
+                    "高成長":          "= 業績爆發期，公司正在快速擴張",
+                    "穩健":            "= 穩定成長，不算爆發但可持續",
+                    "護城河":          "= 產品很難被競爭對手取代，定價權強",
+                    "高槓桿":          "= 借了太多錢，利率上升或景氣下滑時壓力大",
+                    "財務穩健":        "= 借錢借得少，風險低",
+                    "流動性佳":        "= 隨時有錢可以周轉，不怕短期危機",
+                    "流動性差":        "= 短期資金緊張，有違約風險",
+                }
+
+                def get_plain(label: str) -> str:
+                    for key, exp in PLAIN.items():
+                        if key in label:
+                            return f"　<span style='color:#6b7a99;font-size:12px'>{exp}</span>"
+                    return ""
+
                 for t in [r["代碼"] for r in rows]:
                     if t not in detail_map:
                         continue
@@ -1153,13 +1188,23 @@ def main():
                             for item in tc.get("details", []):
                                 lbl = item[0]; clr = item[1] if len(item)>1 else "yellow"
                                 ic  = icon_map.get(clr,"🟡")
+                                plain = get_plain(lbl)
                                 st.markdown(
-                                    f'<span style="color:{clr_map.get(clr,"#ffc842")}">{ic} {lbl}</span>',
+                                    f'<div style="margin:3px 0">'
+                                    f'<span style="color:{clr_map.get(clr,"#ffc842")}">{ic} <b>{lbl}</b></span>'
+                                    f'{plain}</div>',
                                     unsafe_allow_html=True)
                             rsi = tc.get("rsi")
                             if rsi:
-                                rsi_note = "超賣，反彈機率高" if rsi<30 else "偏低有空間" if rsi<45 else "超買注意" if rsi>72 else "健康區間"
-                                st.caption(f"RSI {rsi:.0f} — {rsi_note}")
+                                if rsi < 30:
+                                    rsi_note = "跌太深，可能快反彈"
+                                elif rsi < 45:
+                                    rsi_note = "偏低，還有上升空間"
+                                elif rsi > 75:
+                                    rsi_note = "漲太多，短線小心回調"
+                                else:
+                                    rsi_note = "正常範圍，不極端"
+                                st.caption(f"RSI {rsi:.0f}　— {rsi_note}　（RSI = 衡量股價是否漲／跌過頭的指標，0-100，30以下超賣、70以上超買）")
 
                         with col_f:
                             st.markdown(f"**💼 基本面　評分 {fs}/100**")
@@ -1167,21 +1212,34 @@ def main():
                                 lbl = item[0]; clr = item[1] if len(item)>1 else "yellow"
                                 desc = item[2] if len(item)>2 else ""
                                 ic   = icon_map.get(clr,"🟡")
+                                plain = get_plain(lbl)
                                 st.markdown(
-                                    f'<span style="color:{clr_map.get(clr,"#ffc842")}">{ic} {lbl}（{desc}）</span>',
+                                    f'<div style="margin:3px 0">'
+                                    f'<span style="color:{clr_map.get(clr,"#ffc842")}">{ic} <b>{lbl}</b>（{desc}）</span>'
+                                    f'{plain}</div>',
                                     unsafe_allow_html=True)
 
                         # 估值
+                        st.markdown("**💰 估值（PEG）**")
                         if pv:
                             fv = pc.get("fair_value")
                             v_color = "#00d896" if pv<1.2 else "#ff8c42" if pv<2 else "#ff4060"
+                            if pv < 0.8:
+                                peg_plain = "股價相對成長速度來說很便宜，是少見的低估機會"
+                            elif pv < 1.2:
+                                peg_plain = "價格跟公司成長速度匹配，算合理"
+                            elif pv < 2:
+                                peg_plain = "有點偏貴，需要公司持續維持高成長才撐得住"
+                            else:
+                                peg_plain = "偏貴，除非公司成長速度超快，否則風險較高"
                             st.markdown(
-                                f'**💰 估值**：PEG <span style="color:{v_color}">**{pv:.2f}**</span>'
-                                f'　→　{pc.get("verdict","")}'
-                                + (f'　｜ 合理價估算 **${fv:.2f}**（現價 ${px:.2f}）' if fv else ""),
+                                f'PEG <span style="color:{v_color}">**{pv:.2f}**</span>'
+                                f'　→　{pc.get("verdict","")}　｜　<span style="color:#6b7a99;font-size:12px">{peg_plain}</span>'
+                                + (f'<br><span style="color:#6b7a99;font-size:12px">合理價估算 <b>${fv:.2f}</b>，現價 ${px:.2f}（'
+                                   + ("低於合理價，有空間" if px < fv else "高於合理價，已反映成長") + "）</span>" if fv else ""),
                                 unsafe_allow_html=True)
                         else:
-                            st.caption("估值資料不足（PEG 無法計算）")
+                            st.caption("PEG 無法計算（缺少本益比或成長率資料）　— PEG 是衡量股價是否合理的指標，越低代表越便宜")
 
     # ──────────────────────────────────────────────────────
     # TAB 3: 買入決策
