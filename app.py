@@ -898,12 +898,10 @@ if gs_list:
 else:
     st.warning(gs_status)
     default_wl = "AAPL\nNVDA\nTSLA\nMSFT\nMETA\n2330.TW\n2317.TW\n2454.TW"
-
-
-        col_in, col_btn = st.columns([4,1])
-        wl_raw  = col_in.text_area("每行一個代號", default_wl, height=200)
-        col_btn.markdown("<br><br><br>", unsafe_allow_html=True)
-        run_scan = col_btn.button("🔎 開始掃描", type="primary", use_container_width=True)
+col_in, col_btn = st.columns([4,1])
+wl_raw  = col_in.text_area("每行一個代號", default_wl, height=200)
+col_btn.markdown("<br><br><br>", unsafe_allow_html=True)
+run_scan = col_btn.button("🔎 開始掃描", type="primary", use_container_width=True)
 
         if run_scan:
             tickers = [t.strip().upper() for t in wl_raw.split("\n") if t.strip()]
