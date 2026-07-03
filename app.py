@@ -940,18 +940,30 @@ def main():
         '</div>',
         unsafe_allow_html=True)
 
-    st.markdown("---")
+    st.markdown("""
+<div style="background:linear-gradient(135deg,rgba(91,156,246,.12),rgba(62,207,142,.07));
+border:1px solid rgba(91,156,246,.25);border-radius:12px;padding:14px 18px;margin:8px 0 14px">
+<div style="color:#cce0ff;font-weight:700;font-size:14px;margin-bottom:6px">
+🌱 第一次使用？從這裡開始：
+</div>
+<div style="color:#7fa8c8;font-size:13px;line-height:1.9">
+<b style="color:#cce0ff">① 📰 今日新聞</b>　了解今天市場發生什麼事　→
+<b style="color:#cce0ff">② 🌐 主題清單</b>　找你感興趣的產業，看裡面哪支最強　→
+<b style="color:#cce0ff">③ 🔍 個股研究</b>　深入研究那支股票　→
+<b style="color:#cce0ff">④ 🚨 風險掃雷</b>　買之前確認有沒有隱患
+</div>
+</div>""", unsafe_allow_html=True)
 
     tabs = st.tabs([
-        "🔍 個股研究","📋 自選股掃描","📈 買入決策","📉 賣出決策",
-        "⚖️ 股票比較","🚨 風險掃雷","💼 投資組合","📄 財報解讀",
-        "⏳ 長期分析","🌐 主題清單","📰 今日新聞",
+        "📰 今日新聞","🌐 主題清單","🔍 個股研究","🚨 風險掃雷",
+        "📈 買入決策","📉 賣出決策","⚖️ 股票比較","📋 自選股掃描",
+        "💼 投資組合","📄 財報解讀","⏳ 長期分析",
     ])
 
     # ──────────────────────────────────────────────────────
     # TAB 1: 個股研究
     # ──────────────────────────────────────────────────────
-    with tabs[0]:
+    with tabs[2]:
         c1, c2 = st.columns([3, 1])
         ticker = c1.text_input("股票代號", "AAPL", key="t1",
             help="美股: AAPL | 台股: 2330.TW").strip().upper()
@@ -1011,7 +1023,12 @@ def main():
                         st.markdown(f'<div style="color:#c0c0e0;font-size:13px;margin-bottom:6px">{pt}</div>', unsafe_allow_html=True)
                     st.markdown('</div>', unsafe_allow_html=True)
 
-            t1,t2,t3,t4,t5 = st.tabs(["技術","基本面","估值","新聞","公司"])
+            st.markdown("""
+<div style="color:#7fa8c8;font-size:12px;border-top:1px solid #1e3050;padding-top:14px;margin-top:4px">
+📊 <b style="color:#cce0ff">想深入研究？</b>　下方有技術面、基本面、估值等詳細數字——新手可以先跳過，等對這支股票有興趣後再看。
+</div>""", unsafe_allow_html=True)
+
+            t1,t2,t3,t4,t5 = st.tabs(["📊 技術面","📋 基本面","🏷️ 估值","📰 新聞","🏢 公司"])
 
             with t1:
                 la, ra = st.columns(2)
@@ -1139,7 +1156,7 @@ def main():
     # ──────────────────────────────────────────────────────
     # TAB 2: 自選股掃描
     # ──────────────────────────────────────────────────────
-    with tabs[1]:
+    with tabs[7]:
         sec("📋 自選股清單")
         gs_list, gs_status = load_gsheets_watchlist()
         if gs_list:
@@ -1318,7 +1335,7 @@ def main():
     # ──────────────────────────────────────────────────────
     # TAB 3: 買入決策
     # ──────────────────────────────────────────────────────
-    with tabs[2]:
+    with tabs[4]:
         sec("📈 買入決策分析")
         st.caption("告訴你為什麼推薦或不推薦，以及什麼時候才是更好的進場時機")
         c1,c2,c3,c4 = st.columns(4)
@@ -1486,7 +1503,7 @@ def main():
     # ──────────────────────────────────────────────────────
     # TAB 4: 賣出決策
     # ──────────────────────────────────────────────────────
-    with tabs[3]:
+    with tabs[5]:
         sec("📉 賣出決策分析")
         st.caption("輸入持倉資訊，判斷投資論文是否仍成立，給出保守/平衡/積極三種賣法")
         s1,s2,s3 = st.columns(3)
@@ -1535,7 +1552,7 @@ def main():
     # ──────────────────────────────────────────────────────
     # TAB 5: 股票比較
     # ──────────────────────────────────────────────────────
-    with tabs[4]:
+    with tabs[6]:
         sec("⚖️ 多股比較（最多 4 支）")
         cc = st.columns(4)
         defaults = ["AAPL","MSFT","GOOGL","META"]
@@ -1582,7 +1599,7 @@ def main():
     # ──────────────────────────────────────────────────────
     # TAB 6: 風險掃雷
     # ──────────────────────────────────────────────────────
-    with tabs[5]:
+    with tabs[3]:
         sec("🚨 買前風險掃雷")
         r_t = st.text_input("股票代號","TSLA",key="rt").strip().upper()
         if st.button("🔍 掃描風險", type="primary", key="r_go"):
@@ -1656,7 +1673,7 @@ def main():
     # ──────────────────────────────────────────────────────
     # TAB 7: 投資組合
     # ──────────────────────────────────────────────────────
-    with tabs[6]:
+    with tabs[8]:
         sec("💼 投資組合配置建議")
         st.markdown("""
 <div class="card" style="border-color:#1e3050">
@@ -1744,7 +1761,7 @@ def main():
     # ──────────────────────────────────────────────────────
     # TAB 8: 財報解讀
     # ──────────────────────────────────────────────────────
-    with tabs[7]:
+    with tabs[9]:
         sec("📄 財報快速解讀")
         st.markdown("""
 <div class="card" style="border-color:#1e3050">
@@ -1879,7 +1896,7 @@ def main():
     # ──────────────────────────────────────────────────────
     # TAB 9: 長期分析
     # ──────────────────────────────────────────────────────
-    with tabs[8]:
+    with tabs[10]:
         sec("⏳ 長期持有分析")
         st.markdown("""
 <div class="card" style="border-color:#1e3050">
@@ -2050,7 +2067,7 @@ def main():
     # ──────────────────────────────────────────────────────
     # TAB 10: 主題清單
     # ──────────────────────────────────────────────────────
-    with tabs[9]:
+    with tabs[1]:
         sec("🌐 主題股票清單")
         THEMES = {
             "🤖 AI / 半導體": ["NVDA","AMD","AVGO","AMAT","ASML","2330.TW","2454.TW"],
@@ -2094,7 +2111,7 @@ def main():
     # ──────────────────────────────────────────────────────
     # TAB 11: 今日財經新聞
     # ──────────────────────────────────────────────────────
-    with tabs[10]:
+    with tabs[0]:
         sec("📰 今日財經新聞")
         st.caption("自動彙整美股大盤、台股、熱門股最新動態，每 30 分鐘更新一次")
 
@@ -2189,4 +2206,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
