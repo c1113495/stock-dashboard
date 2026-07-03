@@ -256,12 +256,16 @@ def get_indices() -> list:
     return out
 
 
+@st.cache_data(ttl=300)
 def load_gsheets_watchlist() -> list:
     try:
-        from streamlit_gsheets import GSheetsConnection
-        conn = st.connection("gsheets", type=GSheetsConnection)
-        df   = conn.read(worksheet="Sheet1", usecols=["Stock_ID"], ttl="10m")
-        return [t.strip().upper() for t in df["Stock_ID"].dropna().tolist() if str(t).strip()]
+        url = st.secrets.get("GSHEET_CSV_URL", "")
+        if not url:
+            return []
+        df = pd.read_csv(url)
+        if "Stock_ID" in df.columns:
+            return [t.strip().upper() for t in df["Stock_ID"].dropna().tolist() if str(t).strip()]
+        return []
     except Exception:
         return []
 
