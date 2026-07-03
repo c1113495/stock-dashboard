@@ -889,19 +889,20 @@ def main():
     # ──────────────────────────────────────────────────────
     # TAB 2: 自選股掃描
     # ──────────────────────────────────────────────────────
-    with tabs[1]:
+        with tabs[1]:
         sec("📋 自選股清單")
         gs_list, gs_status = load_gsheets_watchlist()
-if gs_list:
-    st.success(gs_status)
-    default_wl = "\n".join(gs_list)
-else:
-    st.warning(gs_status)
-    default_wl = "AAPL\nNVDA\nTSLA\nMSFT\nMETA\n2330.TW\n2317.TW\n2454.TW"
-col_in, col_btn = st.columns([4,1])
-wl_raw  = col_in.text_area("每行一個代號", default_wl, height=200)
-col_btn.markdown("<br><br><br>", unsafe_allow_html=True)
-run_scan = col_btn.button("🔎 開始掃描", type="primary", use_container_width=True)
+        if gs_list:
+            st.success(gs_status)
+            default_wl = "\n".join(gs_list)
+        else:
+            st.warning(gs_status)
+            default_wl = "AAPL\nNVDA\nTSLA\nMSFT\nMETA\n2330.TW\n2317.TW\n2454.TW"
+
+        col_in, col_btn = st.columns([4,1])
+        wl_raw  = col_in.text_area("每行一個代號", default_wl, height=200)
+        col_btn.markdown("<br><br><br>", unsafe_allow_html=True)
+        run_scan = col_btn.button("🔎 開始掃描", type="primary", use_container_width=True)
 
         if run_scan:
             tickers = [t.strip().upper() for t in wl_raw.split("\n") if t.strip()]
@@ -938,9 +939,7 @@ run_scan = col_btn.button("🔎 開始掃描", type="primary", use_container_wid
                     wdf.to_csv(index=False, encoding="utf-8-sig"),
                     f"scan_{datetime.now():%Y%m%d}.csv", "text/csv")
 
-    # ──────────────────────────────────────────────────────
-    # TAB 3: 買入決策
-    # ──────────────────────────────────────────────────────
+
     with tabs[2]:
         sec("📈 買入決策分析")
         st.caption("輸入你的計劃，系統從估值、技術、基本面綜合給出買/等/避開建議")
