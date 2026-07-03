@@ -709,26 +709,29 @@ def gemini_news_summary(headlines_text: str) -> str:
         return ""
     if not api_key:
         return ""
-    prompt = f"""以下是今日財經新聞標題（中英文混合），請用繁體中文整理：
+    prompt = f"""以下是今日財經新聞標題，請用繁體中文整理成簡短摘要。
 
 新聞標題：
 {headlines_text}
 
-請輸出三個區塊：
+請嚴格按照以下格式輸出，每點不超過25字：
 
 📌 今日重點事件
-（列出 3-5 個最重要的市場動態，每點一行，30字以內，用「•」開頭）
+• （重點1）
+• （重點2）
+• （重點3）
+• （重點4，若有）
 
-📊 整體市場情緒
-（一句話：偏多 / 偏空 / 震盪，並說明主要原因）
+📊 整體市場情緒：偏多／偏空／震盪（原因一句話）
 
 ⚠️ 值得注意
-（1-2個投資人需特別關注的風險或機會，每點一行，用「•」開頭）
+• （風險或機會1）
+• （風險或機會2，若有）
 
-要求：繁體中文、簡潔有力、適合股票新手閱讀"""
+注意：直接輸出內容，不要有任何前言或解釋。繁體中文。"""
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 1500},
+        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 2048},
     }
     # 先查詢這個 Key 有哪些可用模型
     try:
