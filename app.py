@@ -236,7 +236,13 @@ def enrich_info(ticker: str, base_info: dict) -> dict:
 @st.cache_data(ttl=1200)
 def get_news(ticker: str) -> list:
     try:
-        return yf.Ticker(ticker).news[:10]
+        raw = yf.Ticker(ticker).news or []
+        result = []
+        for item in list(raw)[:10]:
+            parsed = _parse_news_item(item)
+            if parsed:
+                result.append(parsed)
+        return result
     except Exception:
         return []
 
@@ -539,39 +545,59 @@ def plain_analysis(ticker: str, info: dict, tech: dict, fund: dict, peg: dict) -
 
     # ── 看漲角度 ────────────────────────────────────────────
     bull = []
-    if rev_g > 20:   bull.append(f"📈 營收年增 {rev_g:.0f}%，業績火熱，代表越來越多人買它的產品")
-    elif rev_g > 5:  bull.append(f"📈 營收年增 {rev_g:.0f}%，穩定成長中")
-    if roe > 20:     bull.append(f"💪 ROE {roe:.0f}%：公司很會用錢賺錢，效率高")
-    elif roe > 15:   bull.append(f"💪 ROE {roe:.0f}%：獲利能力不錯")
-    if gm > 50:      bull.append(f"🏰 毛利率 {gm:.0f}%：護城河很深，別人很難搶走它的生意")
-    elif gm > 30:    bull.append(f"✅ 毛利率 {gm:.0f}%：有一定的定價能力")
-    if ts >= 30:     bull.append("📊 技術面向上，短期股價走勢偏強，市場信心足")
-    if pv and pv < 1: bull.append(f"💰 PEG {pv:.1f}，比成長速度來說股價還算便宜")
-    if de < 30:       bull.append(f"🛡️ 負債比 {de:.0f}%，財務很穩，不容易因借太多錢而出問題")
-    if not bull:      bull.append("目前正面訊號不明顯，建議觀察下一季財報")
+    if rev_g > 20:
+        bull.append(f"📈 **營收暴增 {rev_g:.0f}%**\n業績火熱，代表越來越多人在買它的產品或服務。這種成長速度通常會吸引更多投資人進場，推升股價。")
+    elif rev_g > 5:
+        bull.append(f"📈 **營收穩定成長 {rev_g:.0f}%**\n雖然不是爆發式成長，但穩定增加代表公司體質健康，長期持有比較放心。")
+    if roe > 20:
+        bull.append(f"💪 **ROE {roe:.0f}%（非常優秀）**\nROE 就是「公司幫你的錢賺錢的效率」。20% 以上代表每投入 100 元，公司能賺回 {roe:.0f} 元。這是巴菲特最愛看的指標之一。")
+    elif roe > 15:
+        bull.append(f"💪 **ROE {roe:.0f}%（良好）**\n公司獲利能力不錯，用股東的資金創造了合理的回報。")
+    if gm > 50:
+        bull.append(f"🏰 **毛利率 {gm:.0f}%（護城河級別）**\n毛利率這麼高，代表這家公司的產品「別人很難搶走」，它可以自訂高價而客戶還是買單。例如蘋果、輝達都是這種類型。")
+    elif gm > 30:
+        bull.append(f"✅ **毛利率 {gm:.0f}%（有競爭力）**\n產品有一定定價能力，不容易被價格戰打倒。")
+    if ts >= 30:
+        bull.append("📊 **技術面走強**\n從K線、均線、MACD等指標來看，近期買方力量大於賣方，短期股價動能偏多，進場時機相對較好。")
+    if pv and pv < 1:
+        bull.append(f"💰 **PEG {pv:.2f}（低估）**\nPEG 小於 1 代表「股價比公司的成長速度還便宜」，簡單說就是撿到便宜。這種機會不常有。")
+    if de < 30:
+        bull.append(f"🛡️ **負債比 {de:.0f}%（財務穩健）**\n公司幾乎沒有借錢，不需要擔心利率上升或景氣下滑時還不起債的問題，抗風險能力強。")
+    if not bull:
+        bull.append("⚪ 目前沒有特別亮眼的正面訊號，建議觀望，等下一季財報或技術訊號更明確後再考慮進場。")
 
     # ── 看跌角度 ────────────────────────────────────────────
     bear = []
-    if rev_g < 0:    bear.append(f"⚠️ 營收年增 {rev_g:.0f}%，業績在縮水，要注意")
-    if roe < 8:      bear.append(f"😟 ROE {roe:.0f}%：公司賺錢效率偏低，可能競爭壓力大")
-    if gm < 20:      bear.append(f"😟 毛利率 {gm:.0f}%：獲利空間窄，漲成本或降價都很傷")
-    if ts <= -20:    bear.append("📉 技術面走弱，短期可能繼續下跌，進場要謹慎")
-    if pv and pv > 2.5: bear.append(f"💸 PEG {pv:.1f}，股價已反映很多樂觀預期，如果業績不如預期會跌很多")
-    if de > 100:     bear.append(f"⚠️ 負債比 {de:.0f}%，借了很多錢，利率高的時候壓力大")
-    if beta > 1.8:   bear.append(f"🎢 Beta {beta:.1f}，這支股票很容易大漲大跌，小心情緒影響判斷")
-    if not bear:     bear.append("目前沒有明顯負面警示，但市場永遠有黑天鵝，不能 all-in")
+    if rev_g < 0:
+        bear.append(f"⚠️ **營收衰退 {rev_g:.0f}%**\n業績在縮水，代表賣出去的東西越來越少，或是市場需求在降低。這是基本面惡化的警訊，要認真看待。")
+    if roe < 8:
+        bear.append(f"😟 **ROE {roe:.0f}%（偏低）**\n公司用你的錢賺錢效率不高，可能是競爭壓力大、成本過高、或管理不善。長期持有報酬可能有限。")
+    if gm < 20:
+        bear.append(f"😟 **毛利率 {gm:.0f}%（空間很窄）**\n獲利空間太薄，一旦原物料漲價、或競爭對手降價搶市，這家公司就會很難看。")
+    if ts <= -20:
+        bear.append("📉 **技術面走弱**\n均線、MACD 等指標都顯示賣方占主導，短期股價可能繼續承壓。這時候進場像是接刀子，要謹慎。")
+    if pv and pv > 2.5:
+        bear.append(f"💸 **PEG {pv:.2f}（估值偏高）**\n股價已經反映了非常多的樂觀預期。一旦業績成長低於預期，股價可能大幅回落，風險不小。")
+    if de > 100:
+        bear.append(f"⚠️ **負債比 {de:.0f}%（高槓桿）**\n公司借了很多錢。在利率高、或景氣不好的時候，利息負擔會壓縮獲利，嚴重時可能有財務危機。")
+    if beta > 1.8:
+        bear.append(f"🎢 **Beta {beta:.1f}（高波動）**\nBeta 大於 1 代表這支股票的漲跌幅超過大盤。{beta:.1f} 代表大盤跌 10%，這支可能跌 {beta*10:.0f}%。容易因市場情緒影響而大幅震盪。")
+    if not bear:
+        bear.append("⚪ 目前沒有明顯的負面警示。不過市場隨時可能有意外，建議不要把所有錢都押在單一股票上。")
 
     # ── 中立客觀 ────────────────────────────────────────────
-    neutral = [
-        f"綜合評分：基本面 {fs}/100 | 技術面 {ts:+d}分",
-        f"估值評級：{peg.get('verdict', '資料不足')}",
-    ]
-    fv = peg.get("fair_value")
+    fv   = peg.get("fair_value")
     curr = info.get("currentPrice") or info.get("regularMarketPrice")
+    neutral = []
+    neutral.append(f"📊 **綜合評分**：基本面 {fs}/100、技術面 {ts:+d}分\n基本面 60 分以上算健康，技術面正數代表短期偏多。")
+    neutral.append(f"💲 **估值評級**：{peg.get('verdict', '資料不足')}")
     if fv and curr:
         upside = (fv - curr) / curr * 100
-        neutral.append(f"根據 PEG 模型，合理估值約 ${fv:.2f}，{'比現價還有 ' + f'{upside:.0f}% 上行空間' if upside > 0 else '現價已高於合理估值 ' + f'{-upside:.0f}%'}")
-    neutral.append("⚠️ 任何分析都有侷限，建議分批買入、控制單股不超過總資金的 10%")
+        if upside > 0:
+            neutral.append(f"📐 **合理估值約 ${fv:.2f}**（現價 ${curr:.2f}）\n根據 PEG 模型，現在還有約 {upside:.0f}% 的上行空間，相對划算。")
+        else:
+            neutral.append(f"📐 **合理估值約 ${fv:.2f}**（現價 ${curr:.2f}）\n根據 PEG 模型，現價已比合理估值高了 {-upside:.0f}%，代表市場對它的期望已經很高了。")
+    neutral.append("⚠️ **投資提醒**\n以上分析基於歷史數據與公式，無法預測未來。建議分批買入（不要一次全下）、單一股票不超過總資金的 10%，並定期檢視是否有新的財報或重大消息。")
 
     return {"intro": intro, "bull": bull, "bear": bear, "neutral": neutral}
 
@@ -987,25 +1013,57 @@ def main():
                             "超買" if rsi>70 else "超賣" if rsi<30 else "健康區")
                 with ra:
                     sec("訊號明細")
-                    for lbl, clr in tech["details"]:
+                    TECH_PLAIN = {
+                        "MA5 站上 MA20":  "短期均線穿越中期均線往上 → 買氣回升，短線看多",
+                        "MA5 跌破 MA20":  "短期均線跌破中期均線 → 買氣減弱，短線看空",
+                        "MA20 站上 MA60": "中期均線穿越長期均線往上 → 中期趨勢轉多頭",
+                        "MA20 跌破 MA60": "中期均線跌破長期均線 → 中期趨勢轉空頭",
+                        "MACD 金叉":      "MACD 線從下方穿越訊號線 → 經典買進訊號",
+                        "MACD 死叉":      "MACD 線從上方跌破訊號線 → 經典賣出訊號",
+                        "RSI 超買":       "RSI > 70，股價短期漲太快，注意可能回調",
+                        "RSI 超賣":       "RSI < 30，股價跌太深，可能醞釀反彈",
+                        "RSI 健康":       "RSI 在 30-70 之間，漲跌節奏正常",
+                        "觸及布林下軌":   "股價碰到近期低點支撐區，可能出現買盤",
+                        "觸及布林上軌":   "股價碰到近期高點壓力區，賣方可能增加",
+                        "布林中軌":       "股價在近期平均位置附近，方向不明",
+                    }
+                    for item in tech["details"]:
+                        lbl = item[0]; clr = item[1] if len(item) > 1 else "yellow"
                         icon = "🟢" if clr=="green" else "🔴" if clr=="red" else "🟡"
-                        st.markdown(f"{icon} {lbl}")
+                        plain = next((v for k,v in TECH_PLAIN.items() if k in lbl), "")
+                        st.markdown(f"{icon} **{lbl}**")
+                        if plain:
+                            st.caption(f"　　{plain}")
                     st.markdown("---")
-                    st.markdown(f"**進場點**：`{tech['entry']}`")
-                    st.markdown(f"**止損點**：`{tech['stop']}`（跌破後離場）")
-                    st.markdown(f"**目標位**：`{tech['target']}`（2:1 風報比）")
+                    st.markdown(f"**建議進場點**：`${tech['entry']}`　← 現在的市場價格")
+                    st.markdown(f"**止損點**：`${tech['stop']}`　← 跌破這個價就該考慮停損出場，控制損失")
+                    st.markdown(f"**目標價**：`${tech['target']}`　← 若方向對，預期可到達的價位（風報比約 2:1，賺 2 才賠 1）")
 
             with t2:
                 la, ra = st.columns(2)
+                FUND_EXPLAIN = {
+                    "ROE":    "ROE（股東權益報酬率）= 公司用你投入的每 1 元能賺回多少。20% 以上非常優秀，代表公司「很會賺錢」。",
+                    "毛利率": "毛利率 = 賣出產品後，扣掉直接成本剩下多少比例。越高代表產品競爭力越強、漲價空間越大。50% 以上通常代表有護城河。",
+                    "營收年增": "營收年增率 = 跟去年同期相比，收入成長了多少。正數代表生意越做越大，負數代表業績在縮水。",
+                    "淨利率": "淨利率 = 所有成本費用都扣完後，最終留下來的獲利比例。越高越好，代表公司不只會賺錢，還很會省錢。",
+                    "負債比": "負債比 = 公司借了多少錢（相對於自有資金）。低於 50% 算健康，超過 100% 要小心，利率上升時壓力很大。",
+                    "流動比": "流動比 = 公司短期（1年內）的資產 vs 短期負債。超過 2 代表很安全，低於 1 代表可能面臨短期資金壓力。",
+                }
                 with la:
                     sec("財務指標")
-                    for lbl, clr, desc in fund["details"]:
+                    for item in fund["details"]:
+                        lbl = item[0]; clr = item[1]; desc = item[2] if len(item)>2 else ""
                         icon = "✅" if clr=="green" else "❌" if clr=="red" else "🟡"
                         st.markdown(f"{icon} **{lbl}** — {desc}")
+                        explain = next((v for k,v in FUND_EXPLAIN.items() if k in lbl), "")
+                        if explain:
+                            st.caption(f"　📖 {explain}")
                 with ra:
                     sec("公司數據")
                     mc = info.get("marketCap")
-                    st.metric("市值", f"${mc/1e9:.1f}B" if mc and mc>1e9 else fmt(mc,",.0f","$"))
+                    mc_str = f"${mc/1e9:.1f}B" if mc and mc>1e9 else fmt(mc,",.0f","$")
+                    st.metric("市值", mc_str)
+                    st.caption("市值 = 公司所有股票的總價值。超過 $10B 算大型股，較穩定；$1B 以下是小型股，波動較大。")
                     st.metric("產業", info.get("industry","—"))
                     st.metric("板塊", info.get("sector","—"))
                     emp = info.get("fullTimeEmployees")
@@ -1522,16 +1580,61 @@ def main():
             c1.metric("高風險","🔴 "+str(len(hi))+" 項" if hi else "✅ 無")
             c2.metric("中風險","🟠 "+str(len(mi))+" 項" if mi else "✅ 無")
             c3.metric("低/無風險","🟢 "+str(len(lo))+" 項")
-            for group, title, border in [
-                (hi,"🔴 高風險","#ff4060"),(mi,"🟠 中風險","#ff8c42"),(lo,"🟢 低風險","#00d896")
+            # 風險教學對照表：關鍵字 → (白話解釋, 你該怎麼辦)
+            RISK_EDU = {
+                "本益比": (
+                    "本益比（P/E）= 股價 ÷ 每股盈利。代表你花多少錢買這家公司的「1元獲利」。"
+                    "例如本益比 30x，代表你要等 30 年才能靠獲利回本（假設獲利不變）。",
+                    "本益比高代表市場對它期望很高，一旦業績不如預期，股價可能大跌。建議搭配成長率看（即 PEG 指標）。"
+                ),
+                "負債比": (
+                    "負債比 = 公司借的錢 ÷ 自己的錢。例如負債比 150% 代表借的錢是自有資金的 1.5 倍。",
+                    "公司借太多錢時，利率上升或景氣下滑都可能讓它還不起錢，導致股價暴跌甚至倒閉。建議選負債比 50% 以下的公司。"
+                ),
+                "營收衰退": (
+                    "營收衰退代表這家公司賣出去的東西或服務金額比去年少了，業績在縮水。",
+                    "短期衰退有時是暫時的（如季節性），但連續衰退就要警惕。可以去看財報的管理層說明，了解原因。"
+                ),
+                "空頭": (
+                    "空頭佔比（Short Interest）= 做空這支股票的人佔流通股的比例。做空就是「賭它會跌」。",
+                    "做空比例高代表很多專業投資人認為這支股票要跌。雖然也可能出現軋空（股價反彈讓做空者虧損），但高空頭是警訊。"
+                ),
+                "Beta": (
+                    "Beta 是衡量股票波動性的指標。Beta=1 代表跟大盤一樣波動；Beta=2 代表大盤跌 10%，它可能跌 20%。",
+                    "高 Beta 股票漲的時候漲很多，跌的時候也跌很多。新手建議選 Beta 1.5 以下的股票，比較不容易被嚇到停損。"
+                ),
+                "52週高點": (
+                    "目前股價已接近過去一年的最高點。這個位置上方沒有太多「等著解套的賣壓」，但也代表距離歷史高點很近。",
+                    "高點附近需要更多的「業績支撐」才能繼續上漲。如果這時候業績沒有超預期，股價容易回落。建議等回調後再考慮進場。"
+                ),
+                "MA60": (
+                    "MA60（60日均線，也叫季線）是過去 60 個交易日的平均成本。股價跌破季線代表超過一季的持有者都套牢了。",
+                    "季線是重要的中期趨勢指標。跌破代表賣壓沉重，通常建議等股價重新站回季線上方後再考慮買入。"
+                ),
+                "未發現": (
+                    "這支股票目前沒有觸發我們設定的主要風險指標。",
+                    "但請記住：沒有警示不代表沒有風險，只代表在這些數字面向上看起來相對健康。市場隨時可能有意外消息。"
+                ),
+            }
+
+            for group, title, border, bg in [
+                (hi, "🔴 高風險項目", "#ff4060", "#1a0008"),
+                (mi, "🟠 中風險項目", "#ff8c42", "#1a0d00"),
+                (lo, "🟢 目前正常",   "#00d896", "#001a0d"),
             ]:
                 if group:
                     sec(title)
                     for lbl, _, desc in group:
+                        edu = next(((e,a) for k,(e,a) in RISK_EDU.items() if k in lbl), ("",""))
                         st.markdown(
-                            f'<div class="card" style="border-left:3px solid {border}">'
-                            f'<div style="color:#f0f2f5;font-weight:600">{lbl}</div>'
-                            f'<div style="color:#6b7a99;font-size:13px;margin-top:3px">💡 {desc}</div></div>',
+                            f'<div class="card" style="border-left:4px solid {border};background:{bg};padding:14px 18px;margin-bottom:10px">'
+                            f'<div style="color:{border};font-weight:700;font-size:15px">⚠ {lbl}</div>'
+                            f'<div style="color:#a0b0c0;font-size:13px;margin-top:6px">📋 系統說明：{desc}</div>'
+                            + (f'<div style="color:#c8d8e8;font-size:13px;margin-top:8px;padding-top:8px;border-top:1px solid #253040">'
+                               f'<b>📖 這是什麼？</b> {edu[0]}</div>'
+                               f'<div style="color:#c8d8e8;font-size:13px;margin-top:6px">'
+                               f'<b>💡 你應該怎麼做？</b> {edu[1]}</div>' if edu[0] else "")
+                            + '</div>',
                             unsafe_allow_html=True)
 
     # ──────────────────────────────────────────────────────
