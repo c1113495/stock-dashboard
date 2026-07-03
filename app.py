@@ -726,22 +726,29 @@ def gemini_news_summary(headlines_text: str) -> str:
 （1-2個投資人需特別關注的風險或機會，每點一行，用「•」開頭）
 
 要求：繁體中文、簡潔有力、適合股票新手閱讀"""
-    try:
-        url = (
-            "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-1.5-flash:generateContent?key={api_key}"
-        )
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.3, "maxOutputTokens": 600},
-        }
-        r = requests.post(url, json=payload, timeout=20)
-        if r.status_code == 200:
-            data = r.json()
-            return data["candidates"][0]["content"]["parts"][0]["text"]
-        return f"[API 錯誤 {r.status_code}]"
-    except Exception as e:
-        return f"[連線失敗：{str(e)[:60]}]"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 600},
+    }
+    models_to_try = [
+        "gemini-2.0-flash-lite",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-latest",
+    ]
+    for model in models_to_try:
+        try:
+            url = (
+                "https://generativelanguage.googleapis.com/v1beta/models/"
+                f"{model}:generateContent?key={api_key}"
+            )
+            r = requests.post(url, json=payload, timeout=20)
+            if r.status_code == 200:
+                data = r.json()
+                return data["candidates"][0]["content"]["parts"][0]["text"]
+        except Exception:
+            continue
+    return "[暫時無法取得 AI 摘要]"
 
 
 # ════════════════════════════════════════════════════════════
