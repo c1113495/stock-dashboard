@@ -730,28 +730,39 @@ def gemini_news_summary(headlines_text: str) -> str:
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.3, "maxOutputTokens": 600},
     }
-    models_to_try = [
-        "gemini-2.0-flash-lite",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-latest",
-    ]
-    last_error = ""
-    for model in models_to_try:
-        try:
-            url = (
-                "https://generativelanguage.googleapis.com/v1beta/models/"
-                f"{model}:generateContent?key={api_key}"
-            )
-            r = requests.post(url, json=payload, timeout=20)
-            if r.status_code == 200:
-                data = r.json()
-                return data["candidates"][0]["content"]["parts"][0]["text"]
-            last_error = f"HTTP {r.status_code}: {r.text[:200]}"
-        except Exception as e:
-            last_error = str(e)[:200]
-            continue
-    return f"[DEBUG] {last_error}"
+    # 先查詢這個 Key 有哪些可用模型
+    try:
+        list_r = requests.get(
+            f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}",
+            timeout=10
+        )
+        if list_r.status_code != 200:
+            return f"[DEBUG] ListModels 失敗 HTTP {list_r.status_code}: {list_r.text[:150]}"
+        available = [
+            m["name"].replace("models/", "")
+            for m in list_r.json().get("models", [])
+            if "generateContent" in m.get("supportedGenerationMethods", [])
+        ]
+        if not available:
+            return "[DEBUG] 此 API Key 沒有任何支援 generateContent 的模型"
+    except Exception as e:
+        return f"[DEBUG] 無法列出模型：{str(e)[:100]}"
+
+    # 優先選 flash 系列（速度快、免費）
+    flash = [m for m in available if "flash" in m.lower()]
+    model_id = flash[0] if flash else available[0]
+
+    try:
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{model_id}:generateContent?key={api_key}"
+        )
+        r = requests.post(url, json=payload, timeout=20)
+        if r.status_code == 200:
+            return r.json()["candidates"][0]["content"]["parts"][0]["text"]
+        return f"[DEBUG] {model_id} HTTP {r.status_code}: {r.text[:150]}"
+    except Exception as e:
+        return f"[DEBUG] 呼叫 {model_id} 失敗：{str(e)[:100]}"
 
 
 # ════════════════════════════════════════════════════════════
