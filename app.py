@@ -580,45 +580,105 @@ def plain_analysis(ticker: str, info: dict, tech: dict, fund: dict, peg: dict) -
 #  MARKET NEWS FEED
 # ════════════════════════════════════════════════════════════
 
+def _parse_news_item(item) -> dict:
+    """從各種 yfinance 新聞格式中擷取 title/link/ts/pub，回傳 dict 或 {}。"""
+    title = link = pub = ""
+    ts = 0
+    try:
+        if isinstance(item, dict):
+            # 新格式：{"type":"STORY","content":{...}}
+            c = item.get("content")
+            if isinstance(c, dict):
+                title = c.get("title", "")
+                for key in ("canonicalUrl", "clickThroughUrl"):
+                    u = c.get(key)
+                    if isinstance(u, dict) and u.get("url"):
+                        link = u["url"]; break
+                prov = c.get("provider") or c.get("publisher") or {}
+                pub  = (prov.get("displayName") or prov.get("name", "")) if isinstance(prov, dict) else str(prov)
+                ts_str = c.get("pubDate") or c.get("displayTime") or ""
+                if ts_str:
+                    try:
+                        ts = int(datetime.fromisoformat(ts_str.replace("Z", "+00:00")).timestamp())
+                    except Exception:
+                        ts = 0
+            # 舊格式：{"title":"...","link":"...","providerPublishTime":...}
+            if not title:
+                title = item.get("title") or item.get("headline") or ""
+                link  = item.get("link") or item.get("url") or "#"
+                ts    = item.get("providerPublishTime") or item.get("publishTime") or 0
+                pub_r = item.get("publisher") or item.get("source") or ""
+                pub   = pub_r if isinstance(pub_r, str) else (pub_r.get("name","") if isinstance(pub_r,dict) else "")
+        else:
+            # NewsArticle 物件格式
+            title = str(getattr(item, "title", "") or "")
+            link  = str(getattr(item, "link", "") or getattr(item, "url", "") or "#")
+            ts    = getattr(item, "providerPublishTime", 0) or 0
+            pub_r = getattr(item, "publisher", "") or ""
+            pub   = pub_r if isinstance(pub_r, str) else getattr(pub_r, "name", "")
+            if not title and hasattr(item, "content"):
+                c2 = item.content
+                title = (c2.get("title","") if isinstance(c2,dict) else getattr(c2,"title","")) or ""
+    except Exception:
+        pass
+    if not title:
+        return {}
+    return {"title": str(title), "link": str(link) or "#",
+            "providerPublishTime": int(ts) if ts else 0, "publisher": str(pub)}
+
+
 @st.cache_data(ttl=1800)
 def get_market_news() -> list:
+    import xml.etree.ElementTree as ET
+    from email.utils import parsedate_to_datetime
+
     sources = ["^GSPC","^TWII","^IXIC","NVDA","AAPL","META","TSLA","MSFT","2330.TW","AMD"]
     all_news = []
+
+    # --- 方法 A：yfinance .news ---
     for src in sources:
         try:
             raw = yf.Ticker(src).news or []
             for item in list(raw)[:5]:
-                # 相容 dict 格式（舊版）與 NewsArticle 物件格式（新版）
-                if isinstance(item, dict):
-                    title = item.get("title") or item.get("headline") or ""
-                    link  = item.get("link") or item.get("url") or "#"
-                    ts    = item.get("providerPublishTime") or item.get("publishTime") or 0
-                    pub   = item.get("publisher") or item.get("source") or ""
-                else:
-                    title = getattr(item, "title", "") or ""
-                    link  = getattr(item, "link", "") or getattr(item, "url", "") or "#"
-                    ts    = getattr(item, "providerPublishTime", 0) or 0
-                    pub   = getattr(item, "publisher", "") or ""
-                    # 部分版本將內容放在 .content 子物件
-                    if not title and hasattr(item, "content"):
-                        c = item.content
-                        if isinstance(c, dict):
-                            title = c.get("title", "")
-                        else:
-                            title = getattr(c, "title", "") or ""
-                if title:
-                    all_news.append({
-                        "title": str(title),
-                        "link": str(link) if link else "#",
-                        "providerPublishTime": int(ts) if ts else 0,
-                        "publisher": str(pub),
-                        "_src": src,
-                    })
+                parsed = _parse_news_item(item)
+                if parsed:
+                    parsed["_src"] = src
+                    all_news.append(parsed)
         except Exception:
             pass
+
+    # --- 方法 B：Yahoo Finance RSS（備援，當 A 拿不到資料時）---
+    if len(all_news) < 5:
+        rss_map = [
+            ("%5EGSPC","^GSPC"), ("NVDA","NVDA"), ("AAPL","AAPL"),
+            ("TSLA","TSLA"),     ("MSFT","MSFT"), ("META","META"),
+            ("AMD","AMD"),       ("2330.TW","2330.TW"),
+        ]
+        for sym, src in rss_map:
+            try:
+                url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={sym}&region=US&lang=en-US"
+                r = requests.get(url, timeout=7, headers={"User-Agent":"Mozilla/5.0"})
+                if r.status_code != 200:
+                    continue
+                root = ET.fromstring(r.content)
+                for el in root.findall(".//item")[:4]:
+                    title = el.findtext("title") or ""
+                    link  = el.findtext("link") or "#"
+                    pub   = el.findtext("source") or ""
+                    ts = 0
+                    try:
+                        ts = int(parsedate_to_datetime(el.findtext("pubDate") or "").timestamp())
+                    except Exception:
+                        pass
+                    if title:
+                        all_news.append({"title":title,"link":link,
+                                         "providerPublishTime":ts,"publisher":pub,"_src":src})
+            except Exception:
+                pass
+
     seen, unique = set(), []
     for item in all_news:
-        title = item.get("title", "")
+        title = item.get("title","")
         if title and title not in seen:
             seen.add(title)
             unique.append(item)
@@ -1449,6 +1509,7 @@ def main():
         else:
             filtered = all_news
 
+        st.caption(f"共取得 {len(all_news)} 則新聞，篩選後 {len(filtered)} 則")
         if not filtered:
             st.info("暫時沒有新聞，請稍後再試")
         else:
