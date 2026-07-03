@@ -256,26 +256,35 @@ def get_indices() -> list:
     return out
 
 
-@st.cache_data(ttl=300)
-@st.cache_data(ttl=300)
 def load_gsheets_watchlist() -> tuple:
+    """回傳 (ticker列表, 狀態訊息)"""
+    # Step 1: 讀取 URL
     try:
         url = st.secrets["GSHEET_CSV_URL"]
     except Exception:
-        return [], "❌ Secrets 裡找不到 GSHEET_CSV_URL"
+        return [], "❌ Streamlit Secrets 裡找不到 GSHEET_CSV_URL，請確認有存檔"
+
+    if not url or not url.startswith("http"):
+        return [], "❌ GSHEET_CSV_URL 網址格式不正確"
+
+    # Step 2: 讀取 CSV
     try:
         df = pd.read_csv(url)
     except Exception as e:
-        return [], f"❌ 無法讀取 CSV：{str(e)[:80]}"
+        return [], f"❌ 無法讀取 Google Sheet CSV：{str(e)[:80]}"
+
+    # Step 3: 找欄位
     cols = list(df.columns)
+    # 找 Stock_ID（不分大小寫）
     col_match = next((c for c in cols if c.strip().upper() == "STOCK_ID"), None)
     if not col_match:
-        return [], f"❌ 找不到 Stock_ID 欄位，現有欄位：{cols}"
+        return [], f"❌ 找不到 Stock_ID 欄位，試算表現有欄位是：{cols}"
+
     tickers = [t.strip().upper() for t in df[col_match].dropna().tolist() if str(t).strip()]
     if not tickers:
-        return [], "⚠️ Stock_ID 欄位是空的"
-    return tickers, f"✅ 成功讀取 {len(tickers)} 檔"
+        return [], "⚠️ Stock_ID 欄位是空的，請在 Google Sheet 填入股票代號"
 
+    return tickers, f"✅ 成功從 Google Sheets 讀取 {len(tickers)} 檔"
 
 
 # ════════════════════════════════════════════════════════════
@@ -889,7 +898,7 @@ def main():
     # ──────────────────────────────────────────────────────
     # TAB 2: 自選股掃描
     # ──────────────────────────────────────────────────────
-        with tabs[1]:
+    with tabs[1]:
         sec("📋 自選股清單")
         gs_list, gs_status = load_gsheets_watchlist()
         if gs_list:
@@ -939,7 +948,9 @@ def main():
                     wdf.to_csv(index=False, encoding="utf-8-sig"),
                     f"scan_{datetime.now():%Y%m%d}.csv", "text/csv")
 
-
+    # ──────────────────────────────────────────────────────
+    # TAB 3: 買入決策
+    # ──────────────────────────────────────────────────────
     with tabs[2]:
         sec("📈 買入決策分析")
         st.caption("輸入你的計劃，系統從估值、技術、基本面綜合給出買/等/避開建議")
