@@ -258,17 +258,24 @@ def get_indices() -> list:
 
 @st.cache_data(ttl=300)
 @st.cache_data(ttl=300)
-def load_gsheets_watchlist() -> list:
+def load_gsheets_watchlist() -> tuple:
     try:
-        url = st.secrets.get("GSHEET_CSV_URL", "")
-        if not url:
-            return []
-        df = pd.read_csv(url)
-        if "Stock_ID" in df.columns:
-            return [t.strip().upper() for t in df["Stock_ID"].dropna().tolist() if str(t).strip()]
-        return []
+        url = st.secrets["GSHEET_CSV_URL"]
     except Exception:
-        return []
+        return [], "❌ Secrets 裡找不到 GSHEET_CSV_URL"
+    try:
+        df = pd.read_csv(url)
+    except Exception as e:
+        return [], f"❌ 無法讀取 CSV：{str(e)[:80]}"
+    cols = list(df.columns)
+    col_match = next((c for c in cols if c.strip().upper() == "STOCK_ID"), None)
+    if not col_match:
+        return [], f"❌ 找不到 Stock_ID 欄位，現有欄位：{cols}"
+    tickers = [t.strip().upper() for t in df[col_match].dropna().tolist() if str(t).strip()]
+    if not tickers:
+        return [], "⚠️ Stock_ID 欄位是空的"
+    return tickers, f"✅ 成功讀取 {len(tickers)} 檔"
+
 
 
 # ════════════════════════════════════════════════════════════
@@ -884,13 +891,14 @@ def main():
     # ──────────────────────────────────────────────────────
     with tabs[1]:
         sec("📋 自選股清單")
-        gs_list = load_gsheets_watchlist()
-        if gs_list:
-            st.success(f"✅ 從 Google Sheets 讀取 {len(gs_list)} 檔")
-            default_wl = "\n".join(gs_list)
-        else:
-            st.info("💡 未連接 Google Sheets，請手動輸入（或參閱部署教學頁）")
-            default_wl = "AAPL\nNVDA\nTSLA\nMSFT\nMETA\n2330.TW\n2317.TW\n2454.TW"
+        gs_list, gs_status = load_gsheets_watchlist()
+if gs_list:
+    st.success(gs_status)
+    default_wl = "\n".join(gs_list)
+else:
+    st.warning(gs_status)
+    default_wl = "AAPL\nNVDA\nTSLA\nMSFT\nMETA\n2330.TW\n2317.TW\n2454.TW"
+
 
         col_in, col_btn = st.columns([4,1])
         wl_raw  = col_in.text_area("每行一個代號", default_wl, height=200)
