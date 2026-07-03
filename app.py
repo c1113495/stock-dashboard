@@ -1083,6 +1083,7 @@ def main():
         if run_scan:
             tickers = [t.strip().upper() for t in wl_raw.split("\n") if t.strip()]
             rows = []
+            detail_map = {}
             prog = st.progress(0, "掃描中...")
             for i, t in enumerate(tickers):
                 try:
@@ -1097,6 +1098,7 @@ def main():
                                  "PEG":f"{pc['peg']:.2f}" if pc.get("peg") else "—",
                                  "估值":pc.get("verdict","—"),"RSI":f"{tc['rsi']:.0f}" if tc.get("rsi") else "—",
                                  "綜合建議":sg})
+                    detail_map[t] = {"tc":tc,"fc":fc,"pc":pc,"inf":inf,"sg":sg,"px":px}
                 except Exception:
                     pass
                 prog.progress((i+1)/len(tickers), f"掃描 {t}...")
@@ -1114,6 +1116,72 @@ def main():
                 st.download_button("⬇️ 下載 CSV",
                     wdf.to_csv(index=False, encoding="utf-8-sig"),
                     f"scan_{datetime.now():%Y%m%d}.csv", "text/csv")
+
+                # ── 個股詳細理由 ──────────────────────────────
+                sec("📋 個股詳細理由（點開看）")
+                clr_map = {"green":"#00d896","yellow":"#ffc842","red":"#ff4060"}
+                icon_map = {"green":"🟢","yellow":"🟡","red":"🔴"}
+
+                for t in [r["代碼"] for r in rows]:
+                    if t not in detail_map:
+                        continue
+                    d  = detail_map[t]
+                    tc = d["tc"]; fc = d["fc"]; pc = d["pc"]
+                    sg = d["sg"]; inf2 = d["inf"]; px = d["px"]
+                    name = (inf2.get("shortName","") or t)[:20]
+                    sg_color = "#00d896" if "買進" in sg else "#ff4060" if "避開" in sg else "#ffc842"
+
+                    # 產生一句白話結論
+                    ts = tc["score"]; fs = fc["score"]; pv = pc.get("peg")
+                    why = []
+                    if ts >= 40:    why.append("技術面走強")
+                    elif ts <= -20: why.append("技術面偏空")
+                    else:           why.append("技術面中性")
+                    if fs >= 70:    why.append("基本面優良")
+                    elif fs >= 50:  why.append("基本面尚可")
+                    else:           why.append("基本面偏弱")
+                    if pv:
+                        if pv < 1:   why.append(f"估值偏低 PEG={pv:.2f}")
+                        elif pv > 2: why.append(f"估值偏高 PEG={pv:.2f}")
+                    why_str = "、".join(why)
+
+                    with st.expander(f"**{t}** {name}　→　{sg}　｜ {why_str}"):
+                        col_t, col_f = st.columns(2)
+
+                        with col_t:
+                            st.markdown(f"**📈 技術面　評分 {ts:+d}/100**")
+                            for item in tc.get("details", []):
+                                lbl = item[0]; clr = item[1] if len(item)>1 else "yellow"
+                                ic  = icon_map.get(clr,"🟡")
+                                st.markdown(
+                                    f'<span style="color:{clr_map.get(clr,"#ffc842")}">{ic} {lbl}</span>',
+                                    unsafe_allow_html=True)
+                            rsi = tc.get("rsi")
+                            if rsi:
+                                rsi_note = "超賣，反彈機率高" if rsi<30 else "偏低有空間" if rsi<45 else "超買注意" if rsi>72 else "健康區間"
+                                st.caption(f"RSI {rsi:.0f} — {rsi_note}")
+
+                        with col_f:
+                            st.markdown(f"**💼 基本面　評分 {fs}/100**")
+                            for item in fc.get("details", []):
+                                lbl = item[0]; clr = item[1] if len(item)>1 else "yellow"
+                                desc = item[2] if len(item)>2 else ""
+                                ic   = icon_map.get(clr,"🟡")
+                                st.markdown(
+                                    f'<span style="color:{clr_map.get(clr,"#ffc842")}">{ic} {lbl}（{desc}）</span>',
+                                    unsafe_allow_html=True)
+
+                        # 估值
+                        if pv:
+                            fv = pc.get("fair_value")
+                            v_color = "#00d896" if pv<1.2 else "#ff8c42" if pv<2 else "#ff4060"
+                            st.markdown(
+                                f'**💰 估值**：PEG <span style="color:{v_color}">**{pv:.2f}**</span>'
+                                f'　→　{pc.get("verdict","")}'
+                                + (f'　｜ 合理價估算 **${fv:.2f}**（現價 ${px:.2f}）' if fv else ""),
+                                unsafe_allow_html=True)
+                        else:
+                            st.caption("估值資料不足（PEG 無法計算）")
 
     # ──────────────────────────────────────────────────────
     # TAB 3: 買入決策
