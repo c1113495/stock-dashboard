@@ -25,30 +25,34 @@ st.set_page_config(
 # ── Dark Mode CSS ────────────────────────────────────────────
 st.markdown("""
 <style>
-.stApp{background:#0e1117}
-.main .block-container{padding-top:1.2rem;max-width:1400px}
-.card{background:#161b27;border:1px solid #252d3e;border-radius:12px;padding:14px 18px;margin-bottom:10px}
-.card-label{color:#6b7a99;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.card-val{color:#f0f2f5;font-size:24px;font-weight:800;margin:3px 0}
-.card-sub{font-size:13px;color:#6b7a99}
-.sec{color:#9b8cff;font-size:15px;font-weight:700;border-left:3px solid #9b8cff;padding:2px 0 2px 10px;margin:18px 0 10px}
-.green{color:#00d896}.red{color:#ff4060}.yellow{color:#ffc842}.purple{color:#9b8cff}
-.b-buy{background:#002a1a;color:#00d896;border:1px solid #00d896;padding:2px 12px;border-radius:20px;font-weight:700;font-size:12px}
-.b-sell{background:#2a0010;color:#ff4060;border:1px solid #ff4060;padding:2px 12px;border-radius:20px;font-weight:700;font-size:12px}
-.b-hold{background:#2a1f00;color:#ffc842;border:1px solid #ffc842;padding:2px 12px;border-radius:20px;font-weight:700;font-size:12px}
-.news-item{border-left:3px solid #252d3e;padding:8px 14px;margin:5px 0;background:#161b27;border-radius:0 8px 8px 0}
-.news-item a{color:#e0e6f0;text-decoration:none;font-size:14px;font-weight:500}
-.news-meta{color:#6b7a99;font-size:11px;margin-top:3px}
-.risk-h{background:#2a0010;color:#ff4060;padding:1px 8px;border-radius:4px;font-size:12px;font-weight:600}
-.risk-m{background:#2a1500;color:#ff8c42;padding:1px 8px;border-radius:4px;font-size:12px;font-weight:600}
-.risk-l{background:#002a1a;color:#00d896;padding:1px 8px;border-radius:4px;font-size:12px;font-weight:600}
-.stTabs [data-baseweb="tab-list"]{background:#161b27;border-radius:10px;padding:3px;gap:2px}
-.stTabs [data-baseweb="tab"]{border-radius:7px;color:#6b7a99;font-weight:600}
-.stTabs [aria-selected="true"]{background:#252d3e!important;color:#f0f2f5!important}
-[data-testid="stMetricLabel"]{color:#6b7a99!important}
-[data-testid="stMetricValue"]{color:#f0f2f5!important}
+.stApp{background:#0a1020}
+.main .block-container{padding-top:1rem;max-width:1400px}
+.card{background:#0f1a2e;border:1px solid #1e3050;border-radius:10px;padding:12px 16px;margin-bottom:8px}
+.card-label{color:#7fa8c8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.card-val{color:#cce0ff;font-size:22px;font-weight:800;margin:3px 0}
+.card-sub{font-size:13px;color:#8ab8d8}
+.sec{color:#5b9cf6;font-size:15px;font-weight:700;border-left:3px solid #5b9cf6;padding:2px 0 2px 10px;margin:16px 0 8px}
+.green{color:#3ecf8e}.red{color:#f07070}.yellow{color:#f0b840}.purple{color:#5b9cf6}
+.b-buy{background:#0a2818;color:#3ecf8e;border:1px solid #3ecf8e;padding:2px 12px;border-radius:20px;font-weight:700;font-size:12px}
+.b-sell{background:#281010;color:#f07070;border:1px solid #f07070;padding:2px 12px;border-radius:20px;font-weight:700;font-size:12px}
+.b-hold{background:#281f00;color:#f0b840;border:1px solid #f0b840;padding:2px 12px;border-radius:20px;font-weight:700;font-size:12px}
+.news-item{border-left:3px solid #1e3050;padding:8px 14px;margin:5px 0;background:#0f1a2e;border-radius:0 8px 8px 0}
+.news-item a{color:#b8d8f8;text-decoration:none;font-size:14px;font-weight:500}
+.news-meta{color:#7fa8c8;font-size:11px;margin-top:3px}
+.risk-h{background:#281010;color:#f07070;padding:1px 8px;border-radius:4px;font-size:12px;font-weight:600}
+.risk-m{background:#281a00;color:#f0a060;padding:1px 8px;border-radius:4px;font-size:12px;font-weight:600}
+.risk-l{background:#0a2818;color:#3ecf8e;padding:1px 8px;border-radius:4px;font-size:12px;font-weight:600}
+.idx-bar{display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding:8px 4px;border-bottom:1px solid #1e3050;margin-bottom:10px}
+.idx-item{display:flex;align-items:center;gap:6px}
+.idx-name{color:#7fa8c8;font-size:11px;font-weight:600}
+.idx-price{color:#cce0ff;font-size:13px;font-weight:700}
+.stTabs [data-baseweb="tab-list"]{background:#0f1a2e;border-radius:10px;padding:3px;gap:2px}
+.stTabs [data-baseweb="tab"]{border-radius:7px;color:#7fa8c8;font-weight:600}
+.stTabs [aria-selected="true"]{background:#1e3050!important;color:#cce0ff!important}
+[data-testid="stMetricLabel"]{color:#7fa8c8!important}
+[data-testid="stMetricValue"]{color:#cce0ff!important}
 ::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-thumb{background:#252d3e;border-radius:3px}
+::-webkit-scrollbar-thumb{background:#1e3050;border-radius:3px}
 </style>
 """, unsafe_allow_html=True)
 
@@ -895,34 +899,46 @@ def sec(title):
 # ════════════════════════════════════════════════════════════
 
 def main():
-    st.markdown("# 📈 AI 選股工作站")
-    st.caption(f"數據來源：Yahoo Finance · 更新 {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    st.markdown("## 📈 AI 選股工作站")
 
-    # Index bar
+    # ── 指數列（緊湊單行）──────────────────────────────────────
     indices = get_indices()
     if indices:
-        cols = st.columns(len(indices))
-        for col, idx in zip(cols, indices):
-            c = "#00d896" if idx["pct"] >= 0 else "#ff4060"
-            col.markdown(
-                f'<div class="card" style="text-align:center;padding:10px">'
-                f'<div class="card-label">{idx["name"]}</div>'
-                f'<div style="color:#f0f2f5;font-size:20px;font-weight:800">{idx["price"]:,.0f}</div>'
-                f'<div style="color:{c};font-weight:700">{"▲" if idx["pct"]>=0 else "▼"} {idx["pct"]:+.2f}%</div>'
-                f'</div>', unsafe_allow_html=True)
+        idx_parts = []
+        for idx in indices:
+            c = "#3ecf8e" if idx["pct"] >= 0 else "#f07070"
+            arrow = "▲" if idx["pct"] >= 0 else "▼"
+            idx_parts.append(
+                f'<div class="idx-item">'
+                f'<span class="idx-name">{idx["name"]}</span>'
+                f'<span class="idx-price">{idx["price"]:,.0f}</span>'
+                f'<span style="color:{c};font-size:12px;font-weight:700">{arrow}{idx["pct"]:+.2f}%</span>'
+                f'</div>'
+            )
+        st.markdown(
+            f'<div class="idx-bar">{"".join(idx_parts)}'
+            f'<span style="color:#4a6a88;font-size:11px;margin-left:auto">'
+            f'更新 {datetime.now().strftime("%H:%M")}</span></div>',
+            unsafe_allow_html=True)
+        st.caption(
+            "📌 為什麼看這四個指數？"
+            "　**S&P 500**＝美國前 500 大企業，是全球最重要的市場溫度計，代表美股整體健康度"
+            "　**NASDAQ**＝以科技股為主，AI、半導體、軟體公司為主，波動比 S&P 大但成長性高"
+            "　**道瓊**＝美國 30 家最具代表性老牌企業，傳統產業為主，反映美國實體經濟"
+            "　**台灣加權**＝台股整體表現，以台積電、鴻海、聯發科等科技業為主力"
+        )
 
-    # ── 風控紀律提醒 ──────────────────────────────────────────
-    st.markdown("""
-<div style="background:#1a0a00;border:1px solid #ff8c42;border-radius:12px;padding:12px 18px;margin:12px 0">
-<div style="color:#ff8c42;font-weight:700;font-size:13px;margin-bottom:6px">⚡ 風控紀律提醒（每次買股前看一下）</div>
-<div style="color:#c8a87a;font-size:12px;line-height:1.8">
-💼 單一股票不超過總資金 <b>10%</b>&nbsp;&nbsp;
-📉 虧損達 <b>-8%</b> 一定停損，不凹&nbsp;&nbsp;
-📈 獲利超過 <b>+30%</b> 先賣一半落袋&nbsp;&nbsp;
-🧘 大跌時不恐慌賣出，先看新聞確認原因
-</div>
-</div>
-""", unsafe_allow_html=True)
+    # ── 風控紀律提醒（緊湊版）────────────────────────────────
+    st.markdown(
+        '<div style="background:#0f1a2e;border:1px solid #2a4a70;border-radius:10px;'
+        'padding:10px 16px;margin:8px 0;font-size:12px;color:#8ab8d8;line-height:2">'
+        '⚡ <b style="color:#5b9cf6">風控提醒</b>　'
+        '💼 單股不超過總資金 <b>10%</b>　'
+        '📉 虧損 <b>-8%</b> 停損　'
+        '📈 獲利 <b>+30%</b> 先賣一半　'
+        '🧘 大跌先看新聞，不恐慌賣出'
+        '</div>',
+        unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -1642,70 +1658,221 @@ def main():
     # ──────────────────────────────────────────────────────
     with tabs[6]:
         sec("💼 投資組合配置建議")
-        budget   = st.number_input("可投資資金($)",1000,step=500,value=10000,key="pf_b")
-        pf_raw   = st.text_area("候選股票（每行一個）","AAPL\nMSFT\nNVDA\n2330.TW",key="pf_t")
-        pf_risk  = st.radio("風險偏好",["成長優先","均衡","防禦保守"],horizontal=True,key="pf_r")
+        st.markdown("""
+<div class="card" style="border-color:#1e3050">
+<div style="color:#5b9cf6;font-weight:700;margin-bottom:8px">💡 為什麼需要「投資組合」？</div>
+<div style="color:#8ab8d8;font-size:13px;line-height:1.9">
+不把所有錢押在一支股票，是投資最基本的自保原則。<br>
+假設你把 100% 的錢買了一支股票，它跌 50%，你就虧了一半。<br>
+但如果你分散買了 5 支，就算其中一支腰斬，其他四支可能彌補損失。<br>
+<b>這個工具會根據每支股票的基本面與技術面評分，自動幫你計算建議的比例。</b>
+</div></div>""", unsafe_allow_html=True)
 
-        if st.button("💡 計算配置", type="primary", key="pf_go"):
+        col_a, col_b = st.columns([2, 1])
+        budget  = col_a.number_input("你有多少錢可以投資？（美元）", 1000, step=500, value=10000, key="pf_b")
+        pf_raw  = col_a.text_area("候選股票（每行一個代號）", "AAPL\nMSFT\nNVDA\n2330.TW", height=130, key="pf_t")
+
+        col_b.markdown("<br>", unsafe_allow_html=True)
+        col_b.markdown("**選擇你的投資性格：**")
+        pf_risk = col_b.radio("", [
+            "🚀 成長優先（可以接受大波動，追求高報酬）",
+            "⚖️ 均衡（穩健成長，能承受適度波動）",
+            "🛡️ 防禦保守（最重要是不要大虧，穩定為主）",
+        ], key="pf_r")
+        risk_key = "成長優先" if "成長" in pf_risk else "防禦保守" if "防禦" in pf_risk else "均衡"
+
+        if st.button("💡 計算我的最佳配置", type="primary", key="pf_go"):
             pf_tks = [t.strip().upper() for t in pf_raw.split("\n") if t.strip()]
-            scores = []
-            with st.spinner("計算中..."):
-                for t in pf_tks:
-                    inf = get_info(t); dfx = get_price(t,"6mo")
-                    fc = fund_score(inf); tc = tech_signal(dfx)
-                    scores.append({"ticker":t,"name":(inf.get("shortName","")or t)[:14],
-                                   "fs":fc["score"],"ts":tc["score"],"beta":inf.get("beta",1) or 1})
-            wfn = {
-                "成長優先": lambda x: x["fs"]*0.5 + x["ts"]*0.5,
-                "均衡":     lambda x: x["fs"]*0.7 + x["ts"]*0.3,
-                "防禦保守": lambda x: x["fs"]*0.9 - (x["beta"]-1)*10,
-            }[pf_risk]
-            for s in scores: s["w"] = max(0, wfn(s))
-            tw = sum(s["w"] for s in scores) or 1
-            cash_p = {"成長優先":5,"均衡":10,"防禦保守":20}[pf_risk]
-            inv_p  = 100 - cash_p
-            rows = []
-            for s in scores:
-                ap = s["w"]/tw*inv_p
-                rows.append({"代碼":s["ticker"],"名稱":s["name"],"基本面":s["fs"],
-                             "技術":s["ts"],"配置比例":f"{ap:.1f}%","建議金額":f"${budget*ap/100:,.0f}"})
-            st.dataframe(pd.DataFrame(rows), use_container_width=True)
-            st.success(f"💵 建議保留現金：{cash_p}% = ${budget*cash_p/100:,.0f}")
+            if len(pf_tks) < 2:
+                st.warning("請至少輸入 2 支股票，才能做分散配置")
+            else:
+                scores = []
+                with st.spinner("分析各股票體質中..."):
+                    for t in pf_tks:
+                        try:
+                            inf = get_info(t); dfx = get_price(t, "6mo")
+                            fc = fund_score(inf); tc = tech_signal(dfx)
+                            beta = inf.get("beta", 1) or 1
+                            scores.append({"ticker": t, "name": (inf.get("shortName","") or t)[:14],
+                                           "fs": fc["score"], "ts": tc["score"], "beta": beta})
+                        except Exception:
+                            pass
+
+                wfn = {
+                    "成長優先": lambda x: x["fs"]*0.5 + x["ts"]*0.5,
+                    "均衡":     lambda x: x["fs"]*0.7 + x["ts"]*0.3,
+                    "防禦保守": lambda x: x["fs"]*0.9 - (x["beta"]-1)*10,
+                }[risk_key]
+                for s in scores: s["w"] = max(0, wfn(s))
+                tw = sum(s["w"] for s in scores) or 1
+                cash_p = {"成長優先": 5, "均衡": 10, "防禦保守": 20}[risk_key]
+                inv_p  = 100 - cash_p
+
+                sec("📊 建議配置結果")
+                rows = []
+                for s in scores:
+                    ap = s["w"] / tw * inv_p
+                    amt = budget * ap / 100
+                    role = "核心持倉" if ap >= 20 else "衛星持倉" if ap >= 10 else "小倉位觀察"
+                    rows.append({
+                        "代碼": s["ticker"], "名稱": s["name"],
+                        "基本面評分": f"{s['fs']}/100",
+                        "技術評分":   f"{s['ts']:+d}",
+                        "建議比例":   f"{ap:.1f}%",
+                        "建議金額":   f"${amt:,.0f}",
+                        "倉位角色":   role,
+                    })
+                st.dataframe(pd.DataFrame(rows), use_container_width=True)
+
+                st.markdown(
+                    f'<div class="card" style="border-color:#5b9cf6;margin-top:10px">'
+                    f'<div style="color:#5b9cf6;font-weight:700">💵 現金部位建議：保留 {cash_p}%　＝　${budget*cash_p/100:,.0f}</div>'
+                    f'<div style="color:#8ab8d8;font-size:13px;margin-top:6px">'
+                    f'永遠留一部分現金！市場大跌時，現金讓你有機會低價加碼。'
+                    f'{"成長型投資者通常留 5%，因為機會成本高。" if risk_key=="成長優先" else "均衡型建議留 10%，當作緩衝和機會資金。" if risk_key=="均衡" else "保守型建議留 20%，確保大跌時心理壓力小、能穩住。"}'
+                    f'</div></div>', unsafe_allow_html=True)
+
+                sec("📖 倉位角色說明")
+                st.markdown("""
+- **核心持倉（≥20%）**：你最有信心的股票，基本面強、長期持有
+- **衛星持倉（10-20%）**：補充成長動能的股票，定期檢視
+- **小倉位觀察（<10%）**：體質稍弱或波動較大，先小量試水溫，等確認後再加碼
+
+💡 **新手建議**：單一股票不要超過總資金的 20%，就算再看好也一樣。
+""")
 
     # ──────────────────────────────────────────────────────
     # TAB 8: 財報解讀
     # ──────────────────────────────────────────────────────
     with tabs[7]:
         sec("📄 財報快速解讀")
-        e_t = st.text_input("股票代號","AAPL",key="et").strip().upper()
+        st.markdown("""
+<div class="card" style="border-color:#1e3050">
+<div style="color:#5b9cf6;font-weight:700;margin-bottom:8px">📖 什麼是「財報」？為什麼要看它？</div>
+<div style="color:#8ab8d8;font-size:13px;line-height:1.9">
+財報（財務報告）就是公司的「成績單」，每季公佈一次。<br>
+就像學生看分數，投資者看財報來了解：<br>
+· 公司賺了多少錢？（收入、利潤）<br>
+· 賺錢的能力有沒有變好或變差？（成長率）<br>
+· 股價貴不貴？（本益比 P/E）<br>
+<b>財報一出來，市場往往大幅波動——這也是最好的加碼或避開時機。</b>
+</div></div>""", unsafe_allow_html=True)
+
+        e_t = st.text_input("輸入股票代號", "AAPL", key="et").strip().upper()
         if st.button("📊 解讀財報", type="primary", key="e_go"):
-            with st.spinner("載入財報..."):
+            with st.spinner("載入財報數據..."):
                 ei = get_info(e_t); ef = get_financials(e_t)
-            sec("本期關鍵數字")
-            rev = ei.get("totalRevenue"); rg = ei.get("revenueGrowth")
-            eps = ei.get("trailingEps");  pm = ei.get("profitMargins")
-            gm  = ei.get("grossMargins"); tpe = ei.get("trailingPE"); fpe = ei.get("forwardPE")
+
+            name = ei.get("shortName") or e_t
+            st.markdown(f"### {name}（{e_t}）財報解讀")
+
+            rev = ei.get("totalRevenue");  rg  = ei.get("revenueGrowth")
+            eps = ei.get("trailingEps");   pm  = ei.get("profitMargins")
+            gm  = ei.get("grossMargins");  tpe = ei.get("trailingPE"); fpe = ei.get("forwardPE")
             eg  = ei.get("earningsGrowth")
-            c1,c2,c3,c4 = st.columns(4)
-            c1.metric("年化收入", f"${rev/1e9:.1f}B" if rev else "—", f"{rg*100:+.1f}% YoY" if rg else "")
-            c2.metric("EPS (TTM)", f"${eps:.2f}" if eps else "—")
-            c3.metric("淨利率", f"{pm*100:.1f}%" if pm else "—")
-            c4.metric("毛利率", f"{gm*100:.1f}%" if gm else "—")
-            sec("前瞻指引")
-            c1,c2,c3 = st.columns(3)
-            c1.metric("當前 P/E",   f"{tpe:.1f}x" if tpe else "—")
-            c2.metric("遠期 P/E",   f"{fpe:.1f}x" if fpe else "—")
+
+            # ── 收入 ──
+            sec("💰 收入（Revenue）—— 公司一年賣出多少？")
+            st.markdown("""
+<div style="color:#7fa8c8;font-size:12px;margin-bottom:10px">
+收入就是公司的「營業額」，代表它向客戶收了多少錢。<br>
+收入成長 = 公司業務在擴張；收入衰退 = 警訊，可能失去市場。<br>
+<b>成長型科技公司：15%+ 以上才算健康；傳統產業 5%+ 就不錯</b>
+</div>""", unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            col1.metric("年化總收入", f"${rev/1e9:.1f}B" if rev else "—")
+            if rg is not None:
+                rg_label = "✅ 強勁成長" if rg > 0.15 else "🟡 溫和成長" if rg > 0 else "🔴 衰退"
+                col2.metric("收入年增率", f"{rg*100:+.1f}%", rg_label)
+                if rg > 0.20:
+                    st.success(f"🚀 收入成長 {rg*100:.0f}%——非常強勁，業務持續擴張中！")
+                elif rg > 0.10:
+                    st.info(f"✅ 收入成長 {rg*100:.0f}%——健康成長，公司在穩定擴大規模")
+                elif rg > 0:
+                    st.warning(f"🟡 收入成長 {rg*100:.0f}%——成長放緩，需觀察是否是短期還是趨勢")
+                else:
+                    st.error(f"🔴 收入衰退 {rg*100:.0f}%——業務萎縮，要查清楚是一次性原因還是結構問題")
+
+            # ── 獲利能力 ──
+            sec("📈 獲利能力 —— 公司賺錢的效率")
+            st.markdown("""
+<div style="color:#7fa8c8;font-size:12px;margin-bottom:10px">
+<b>毛利率</b>：賣出商品後，扣掉生產成本，剩下多少比例。越高代表產品越有競爭力、定價能力強。<br>
+<b>淨利率</b>：扣掉所有成本（含管銷、稅）後，最終進口袋的比例。這才是「真正賺了多少」。<br>
+<b>EPS（每股盈餘）</b>：把公司利潤平分給每一股，代表持有一股能分到多少盈餘。EPS 持續成長是最好的信號。
+</div>""", unsafe_allow_html=True)
+            c1, c2, c3 = st.columns(3)
+            gm_pct = gm * 100 if gm else None
+            pm_pct = pm * 100 if pm else None
+            c1.metric("毛利率", f"{gm_pct:.1f}%" if gm_pct else "—",
+                      "優秀 >50%" if gm_pct and gm_pct > 50 else ("良好 >30%" if gm_pct and gm_pct > 30 else "偏低"))
+            c2.metric("淨利率", f"{pm_pct:.1f}%" if pm_pct else "—",
+                      "優秀 >20%" if pm_pct and pm_pct > 20 else ("還可以 >10%" if pm_pct and pm_pct > 10 else "偏低"))
+            c3.metric("每股盈餘 EPS", f"${eps:.2f}" if eps else "—",
+                      "正數賺錢✅" if eps and eps > 0 else "虧損中🔴")
+
+            if gm_pct and gm_pct > 50:
+                st.success(f"✅ 毛利率 {gm_pct:.0f}%，超過 50%——說明這家公司有很強的定價能力，不容易被競爭對手壓低價格")
+            elif gm_pct and gm_pct < 20:
+                st.warning(f"🟡 毛利率 {gm_pct:.0f}%，低於 20%——毛利率偏低，公司可能靠薄利多銷，容易受成本上漲影響")
+
+            # ── 估值 ──
+            sec("🏷️ 估值 —— 現在股價貴不貴？")
+            st.markdown("""
+<div style="color:#7fa8c8;font-size:12px;margin-bottom:10px">
+<b>本益比 P/E（當前）</b>：股價 ÷ 過去一年每股盈餘。等於「你願意為 1 元利潤付多少錢」。<br>
+例：P/E=30 代表你付 30 元，公司每年幫你賺 1 元。P/E 越低通常越便宜（但成長股可以接受高 P/E）。<br>
+<b>遠期本益比（Forward P/E）</b>：用「預估未來盈餘」算出的本益比。Forward P/E < 當前 P/E，表示市場預期未來會更賺錢、估值會下降，是好事。
+</div>""", unsafe_allow_html=True)
+            c1, c2, c3 = st.columns(3)
+            c1.metric("當前 P/E", f"{tpe:.1f}x" if tpe else "—")
+            c2.metric("遠期 P/E", f"{fpe:.1f}x" if fpe else "—",
+                      "估值下降✅" if fpe and tpe and fpe < tpe else "估值上升⚠️" if fpe and tpe else "")
             c3.metric("盈餘成長預估", f"{eg*100:+.1f}%" if eg else "—")
-            sec("財報評估")
-            if rg and rg>0.15:  st.markdown("✅ 營收強勁成長")
-            elif rg and rg<0:    st.markdown("❌ 營收衰退，需警惕")
-            if pm and pm>0.15:   st.markdown("✅ 淨利率健康")
-            if fpe and tpe and fpe<tpe: st.markdown("✅ 遠期估值優於當前，市場預期成長")
+
+            if tpe and fpe:
+                if fpe < tpe * 0.85:
+                    st.success(f"✅ 遠期 P/E（{fpe:.1f}x）明顯低於當前 P/E（{tpe:.1f}x）——市場預估公司未來會大幅增長，現在買進相對划算")
+                elif fpe > tpe * 1.1:
+                    st.warning(f"🟡 遠期 P/E（{fpe:.1f}x）高於當前——市場預期盈餘可能放緩，需謹慎評估")
+
+            # ── 綜合評語 ──
+            sec("📝 新手看懂財報：三分鐘總結")
+            good, bad = [], []
+            if rg and rg > 0.15: good.append("收入強勁成長（+{:.0f}%）".format(rg*100))
+            if rg and rg < 0:    bad.append("收入在衰退中（{:.0f}%）".format(rg*100))
+            if gm_pct and gm_pct > 40: good.append(f"毛利率高（{gm_pct:.0f}%），有競爭優勢")
+            if gm_pct and gm_pct < 20: bad.append(f"毛利率偏低（{gm_pct:.0f}%），成本壓力大")
+            if pm_pct and pm_pct > 15: good.append(f"淨利率優秀（{pm_pct:.0f}%），真正賺到很多")
+            if pm_pct and pm_pct < 5 and pm_pct > 0: bad.append(f"淨利率偏低（{pm_pct:.0f}%），獲利能力有限")
+            if eps and eps < 0:  bad.append("目前虧損（EPS 負數），要確認何時轉虧為盈")
+            if fpe and tpe and fpe < tpe: good.append("遠期估值優於當前，市場看好未來成長")
+            if eg and eg > 0.15: good.append(f"盈餘成長預估強勁（+{eg*100:.0f}%）")
+
+            if good or bad:
+                html_parts = []
+                if good:
+                    html_parts.append('<div style="color:#3ecf8e;font-weight:700;margin-bottom:6px">✅ 這份財報的亮點</div>')
+                    html_parts += [f'<div style="color:#8ab8d8;font-size:13px;margin:2px 0">• {g}</div>' for g in good]
+                if bad:
+                    html_parts.append('<div style="color:#f07070;font-weight:700;margin:10px 0 6px">⚠️ 這份財報的隱憂</div>')
+                    html_parts += [f'<div style="color:#8ab8d8;font-size:13px;margin:2px 0">• {b}</div>' for b in bad]
+                st.markdown(f'<div class="card" style="border-color:#1e3050">{"".join(html_parts)}</div>',
+                            unsafe_allow_html=True)
+
+            st.markdown("""
+<div style="color:#5b9cf6;font-size:12px;margin-top:12px">
+💡 <b>新手小提醒</b>：單一財報不能說明一切，要看「趨勢」——連續幾季的收入、EPS 是向上還是向下？
+若連續 3 季 EPS 都在成長，那才是真正值得信任的買進信號。
+</div>""", unsafe_allow_html=True)
+
             if ef.get("earnings") is not None:
                 try:
                     edf = pd.DataFrame(ef["earnings"])
                     if not edf.empty:
-                        sec("歷史 EPS"); st.dataframe(edf.tail(8), use_container_width=True)
+                        sec("📈 歷史 EPS 趨勢")
+                        st.caption("EPS 長期向上 = 公司持續賺更多錢，是長期持有的好跡象")
+                        st.dataframe(edf.tail(8), use_container_width=True)
                 except Exception:
                     pass
 
@@ -1714,41 +1881,171 @@ def main():
     # ──────────────────────────────────────────────────────
     with tabs[8]:
         sec("⏳ 長期持有分析")
-        lt_t = st.text_input("股票代號","MSFT",key="ltt").strip().upper()
-        lt_y = st.selectbox("計劃持有",["5年","10年","15年"],key="lty")
+        st.markdown("""
+<div class="card" style="border-color:#1e3050">
+<div style="color:#5b9cf6;font-weight:700;margin-bottom:8px">🌱 為什麼「長期持有」是新手最強策略？</div>
+<div style="color:#8ab8d8;font-size:13px;line-height:1.9">
+巴菲特說：「我最喜歡的持有期限是永遠。」<br>
+這不是懶，而是因為複利威力巨大——<br>
+· 每年成長 15% 的股票，5 年後變成現在的 2 倍，10 年後是 4 倍，15 年後是 8 倍<br>
+· 但短線交易很容易買高賣低，反而賠錢<br>
+<b>長期持有的前提：選到體質夠好、有「護城河」的公司</b>
+</div></div>""", unsafe_allow_html=True)
 
-        if st.button("🔭 分析長期價值", type="primary", key="lt_go"):
-            with st.spinner("分析中..."):
-                li = get_info(lt_t); ld = get_price(lt_t,"5y")
+        col_l, col_r = st.columns([1, 1])
+        lt_t = col_l.text_input("股票代號", "MSFT", key="ltt").strip().upper()
+        lt_y = col_r.selectbox("你打算持有多久？", ["5年", "10年", "15年", "20年"], key="lty")
+
+        if st.button("🔭 分析長期投資價值", type="primary", key="lt_go"):
+            with st.spinner("深度分析中..."):
+                li = get_info(lt_t); ld = get_price(lt_t, "5y")
                 lf = fund_score(li); lp = peg_model(li)
-            sec("護城河評估")
-            gm = li.get("grossMargins",0) or 0; roe = li.get("returnOnEquity",0) or 0
-            if gm>0.5:  st.markdown("✅ **高毛利率 >50%** — 定價能力強，有成本護城河")
-            if roe>0.2:  st.markdown("✅ **高 ROE >20%** — 資本效率高，競爭優勢明顯")
-            mc = li.get("marketCap",0) or 0
-            if mc>100e9: st.markdown("✅ **大市值龍頭** — 規模效應強，市場份額穩固")
-            de = li.get("debtToEquity")
-            if de and de<50: st.markdown("✅ **低負債** — 財務穩健，抗風險能力強")
 
-            sec("長期報酬估算")
-            cp = li.get("currentPrice") or li.get("regularMarketPrice")
-            eg = li.get("earningsGrowth") or li.get("revenueGrowth") or 0.10
-            yrs = int(lt_y.replace("年",""))
-            if cp and eg>0:
-                c1,c2,c3 = st.columns(3)
-                bull = cp*(1+eg*1.2)**yrs; base = cp*(1+eg*0.8)**yrs; bear = cp*(1+max(eg-0.05,0.02))**yrs
-                c1.metric("樂觀",f"${bull:.0f}",f"+{(bull/cp-1)*100:.0f}%")
-                c2.metric("基本",f"${base:.0f}",f"+{(base/cp-1)*100:.0f}%")
-                c3.metric("悲觀",f"${bear:.0f}",f"+{(bear/cp-1)*100:.0f}%")
-            sec("論文破裂信號")
+            name = li.get("shortName") or lt_t
+            st.markdown(f"### {name}（{lt_t}）長期投資分析")
+
+            # ── 護城河評估 ──
+            sec("🏰 護城河評估 —— 這家公司憑什麼未來 10 年還能賺錢？")
             st.markdown("""
-- 🔴 連續 2 季 ROE 低於 10%
-- 🔴 毛利率連續下滑超過 5 個百分點
-- 🔴 核心業務被顛覆性技術替代
-- 🔴 管理層異動（CEO/CFO 更換）
-- 🟡 自由現金流連續 3 季下滑
-- 🟡 負債比突破 150%
-            """)
+<div style="color:#7fa8c8;font-size:12px;margin-bottom:10px">
+「護城河」就是讓公司維持競爭優勢的能力，就像城堡外的護城河——讓敵人（競爭者）很難攻進來。<br>
+沒有護城河的公司，再好的業績也容易被別人模仿或取代。<br>
+<b>長期投資一定要選有護城河的公司</b>
+</div>""", unsafe_allow_html=True)
+
+            gm  = li.get("grossMargins", 0) or 0
+            roe = li.get("returnOnEquity", 0) or 0
+            mc  = li.get("marketCap", 0) or 0
+            de  = li.get("debtToEquity")
+            fcf = li.get("freeCashflow")
+
+            moat_items = []
+
+            if gm > 0.50:
+                moat_items.append(("✅", f"高毛利率 {gm*100:.0f}%（超過 50%）",
+                    "定價能力超強——這家公司的產品讓人願意付高價，競爭對手很難靠降價搶走它的客戶。如 iPhone、Nike 球鞋都屬於這類。"))
+            elif gm > 0.30:
+                moat_items.append(("🟡", f"毛利率 {gm*100:.0f}%（30-50%）",
+                    "毛利率還不錯，有一定競爭優勢，但護城河不算特別深。"))
+            else:
+                moat_items.append(("⚠️", f"毛利率 {gm*100:.0f}%（低於 30%）",
+                    "毛利率偏低，可能處於激烈競爭市場，長期護城河較弱。"))
+
+            if roe > 0.20:
+                moat_items.append(("✅", f"高 ROE {roe*100:.0f}%（超過 20%）",
+                    f"ROE 就是「公司幫你的錢賺錢的效率」。{roe*100:.0f}% 代表公司把你投入的每 100 元，賺回 {roe*100:.0f} 元利潤。巴菲特認為持續 ROE > 15% 才算真正的好公司。"))
+            elif roe > 0.10:
+                moat_items.append(("🟡", f"ROE {roe*100:.0f}%（10-20%）",
+                    "ROE 還可以，但稱不上頂尖。觀察是否有持續改善趨勢。"))
+            else:
+                moat_items.append(("🔴", f"ROE {roe*100:.0f}%（低於 10%）",
+                    "資本效率偏低，公司可能面臨激烈競爭或管理效率問題，長期持有需謹慎。"))
+
+            if mc > 500e9:
+                moat_items.append(("✅", f"超大型市值（${mc/1e12:.1f}兆）",
+                    "規模護城河——市值越大，說明已建立龐大的用戶、品牌和資源。新進競爭者很難在短期內挑戰它的地位。"))
+            elif mc > 100e9:
+                moat_items.append(("✅", f"大型龍頭（${mc/1e9:.0f}B）",
+                    "市場地位穩固，是各產業中的大型玩家，具備一定規模優勢。"))
+
+            if de is not None:
+                if de < 30:
+                    moat_items.append(("✅", f"極低負債比 {de:.0f}%",
+                        f"負債比只有 {de:.0f}%——財務非常健康。市場崩潰時，低負債公司能撐過去，高負債公司可能倒閉。這是長期持有的重要保障。"))
+                elif de < 100:
+                    moat_items.append(("🟡", f"負債比 {de:.0f}%（尚可）",
+                        "負債在可控範圍，但要持續關注，避免負債持續攀升。"))
+                else:
+                    moat_items.append(("⚠️", f"負債偏高 {de:.0f}%",
+                        "公司借了很多錢，利率升高或經濟衰退時壓力大。長期持有前請確認它的還款能力。"))
+
+            if fcf and fcf > 0:
+                moat_items.append(("✅", f"正的自由現金流（${fcf/1e9:.1f}B）",
+                    "自由現金流 = 公司真正進口袋的現金（非帳面利潤）。現金流充沛的公司，可以不斷投資未來、回購股票、發股息，是長期投資者最愛。"))
+
+            for icon, title, desc in moat_items:
+                color = "#3ecf8e" if "✅" in icon else "#f07070" if "🔴" in icon else "#f0b840"
+                st.markdown(f"""
+<div class="card" style="border-color:{color}33;margin-bottom:8px">
+<div style="color:{color};font-weight:700;margin-bottom:4px">{icon} {title}</div>
+<div style="color:#8ab8d8;font-size:12px;line-height:1.7">{desc}</div>
+</div>""", unsafe_allow_html=True)
+
+            # ── 長期報酬估算 ──
+            sec("📊 長期報酬試算 —— 如果現在買，N 年後大概值多少？")
+            st.markdown("""
+<div style="color:#7fa8c8;font-size:12px;margin-bottom:10px">
+這是根據公司目前的成長率，試算未來可能的股價範圍。<br>
+<b>注意：這不是保證，只是幫你建立合理預期的參考。</b><br>
+實際結果受市場、總體經濟、公司表現等多種因素影響。
+</div>""", unsafe_allow_html=True)
+
+            cp  = li.get("currentPrice") or li.get("regularMarketPrice")
+            eg  = li.get("earningsGrowth") or li.get("revenueGrowth") or 0.10
+            yrs = int(lt_y.replace("年", ""))
+
+            if cp and eg > 0:
+                bull  = cp * (1 + eg * 1.3) ** yrs
+                base  = cp * (1 + eg * 0.9) ** yrs
+                bear  = cp * (1 + max(eg - 0.05, 0.02)) ** yrs
+
+                c1, c2, c3 = st.columns(3)
+                c1.metric(f"🐂 樂觀（{yrs}年後）", f"${bull:,.0f}",
+                          f"+{(bull/cp-1)*100:.0f}%（假設成長加速）")
+                c2.metric(f"📊 基本（{yrs}年後）", f"${base:,.0f}",
+                          f"+{(base/cp-1)*100:.0f}%（維持現有速度）")
+                c3.metric(f"🐻 悲觀（{yrs}年後）", f"${bear:,.0f}",
+                          f"+{(bear/cp-1)*100:.0f}%（成長放緩）")
+
+                st.markdown(f"""
+<div class="card" style="border-color:#1e3050;margin-top:10px">
+<div style="color:#5b9cf6;font-weight:700;margin-bottom:6px">💡 怎麼看這三個數字？</div>
+<div style="color:#8ab8d8;font-size:13px;line-height:1.8">
+· 現在股價：<b>${cp:,.2f}</b>　　成長率假設：<b>{eg*100:.1f}% / 年</b>　　持有年數：<b>{yrs} 年</b><br>
+· 樂觀情境：公司表現超越預期，成長率加速<br>
+· 基本情境：公司維持目前速度，沒有太大意外<br>
+· 悲觀情境：成長放緩，但公司還是有穩定發展<br>
+<b>就算是悲觀情境，持有 {yrs} 年的預期報酬也是 +{(bear/cp-1)*100:.0f}%——這就是為什麼長期投資很重要！</b>
+</div></div>""", unsafe_allow_html=True)
+
+            # ── 何時該停損離開 ──
+            sec("🚨 什麼情況下你應該「賣掉」或「重新考慮」？")
+            st.markdown("""
+<div style="color:#7fa8c8;font-size:12px;margin-bottom:12px">
+長期持有不是「買了就不管」——下面這些警訊出現，代表公司的基本面可能在惡化，你需要重新評估。
+</div>""", unsafe_allow_html=True)
+
+            THESIS_BREAK = [
+                ("🔴", "嚴重警訊", [
+                    ("連續 2 季 ROE 低於 10%", "之前說好是賺錢效率高的公司，現在降到 10% 以下——說明護城河可能消失了。行動：研究原因，若是結構性問題就考慮賣出。"),
+                    ("毛利率連續下滑超過 5 個百分點", "代表公司在定價能力或成本控制上失去優勢。競爭對手搶市場或原料成本暴漲都可能造成。"),
+                    ("核心業務被新技術取代", "比如 Nokia 被智慧手機取代、Kodak 被數位相機打敗。如果公司的主要業務有被取代的風險，要認真考慮。"),
+                    ("管理層大換血（CEO/CFO 同時更換）", "管理層是公司的方向盤。同時換掉最高階主管，往往代表公司遇到嚴重問題或內部有矛盾。"),
+                ]),
+                ("🟡", "黃燈注意", [
+                    ("自由現金流連續 3 季下滑", "公司帳面可能有利潤，但真實現金在減少——這是財報開始走壞的早期警訊，密切觀察。"),
+                    ("負債比突破 150%", "借款超過自有資金的 1.5 倍，財務壓力大。若加上利率升高，可能出現流動性危機。"),
+                    ("市佔率開始下滑", "對手搶走客戶——市佔率一旦開始流失，後面要搶回來非常困難。"),
+                ]),
+            ]
+
+            for level_color, level_name, signals in THESIS_BREAK:
+                color = "#f07070" if "🔴" in level_color else "#f0b840"
+                signals_html = "".join([
+                    f'<div style="margin:8px 0"><div style="color:{color};font-weight:700;font-size:13px">{level_color} {sig}</div>'
+                    f'<div style="color:#8ab8d8;font-size:12px;margin-top:3px;line-height:1.6">{exp}</div></div>'
+                    for sig, exp in signals
+                ])
+                st.markdown(f"""
+<div class="card" style="border-color:{color}33;margin-bottom:12px">
+<div style="color:{color};font-weight:700;font-size:14px;margin-bottom:8px">{level_color} {level_name}</div>
+{signals_html}
+</div>""", unsafe_allow_html=True)
+
+            st.markdown("""
+<div style="color:#5b9cf6;font-size:12px;margin-top:8px">
+💡 <b>原則</b>：出現「黃燈」時先觀察，別急著賣。出現「紅燈」時要認真研究原因——如果確認是結構性問題，果斷停損比繼續持有更明智。
+</div>""", unsafe_allow_html=True)
 
     # ──────────────────────────────────────────────────────
     # TAB 10: 主題清單
@@ -1892,3 +2189,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
